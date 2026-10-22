@@ -80,7 +80,7 @@ function step(t) {
 
 // ---------- 渲染 ----------
 function ballList(t) {
-  const D = S.ballSize, out = Z.renderList().filter(b => b.y > view.y0 - D);
+  const D = S.ballSize, out = Z.renderList().filter(b => b.y > view.y0 - D && !(b.dying != null && S.fxGhost > 0));
   if (Z.state === 'play' || (Z.state === 'fail' && !failShowAt)) { const m = Z.muzzle(), u = clamp01((t - mouthT) / 90); out.push({ id: 1e7 + Z.shotsFired, c: Z.cur, x: m.x, y: m.y, z: S.ballSize * 0.3, scale: mouthT ? (t - mouthT < 35 ? 0.01 : 0.3 + 0.7 * easeOut(u)) : 1, mouth: true }); }
   return out;
 }

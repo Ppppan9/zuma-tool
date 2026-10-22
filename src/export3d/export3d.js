@@ -51,7 +51,7 @@ export async function export3D({ S, ae, rec, env }) {
   const glb = await new GLTFExporter().parseAsync(scn, { binary: true, animations: [clip], onlyVisible: false, trs: true });
   const tl = ae.timeline, byA = new Map(tl.assets.map(a => [a.id, a])), sfxC = tl.comps.find(c => c.id === 'sfx'), audio = [];
   if (sfxC) for (const l of sfxC.layers) { const a = byA.get(l.src.asset); if (a) audio.push({ file: a.file, t: l.start || 0, name: l.name }); }
-  const scene3d = { tool: 'zuma-tool', version: '1.0.0', format: 'export3d/1', fps, frames: NF + 1, frameStart: 0, frameEnd: NF, duration: D, width: Math.round(view.w), height: Math.round(view.h),
+  const scene3d = { tool: 'zuma-tool', version: '1.0.1', format: 'export3d/1', fps, frames: NF + 1, frameStart: 0, frameEnd: NF, duration: D, width: Math.round(view.w), height: Math.round(view.h),
     units: { px: PX, note: 'zuma_root 缩放 0.01（1 设计像素 = 1cm），绕 X 轴 -90°（页面 z 向上 → Y 向上）' }, camera: { name: cam.name, type: 'orthographic', orthoScale: r5(Math.max(view.w, view.h) * PX), widthM: r5(view.w * PX), heightM: r5(view.h * PX) },
     lights: { sun: { intensity: S.lightSun, elev: S.lightElev, azim: S.lightAzim }, ambient: { intensity: S.lightAmb } }, visibility: 'ball_* 不在场时 scale=0（STEP）', nodes, audio, stats };
   const enc = new TextEncoder(), fm = new Map(ae.fileList.map(f => [f.name, f.data]));

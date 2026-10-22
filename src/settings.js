@@ -1,8 +1,8 @@
 // 设置定义：所有可调参数（中文标签）。版本号 + 迁移（通用分组 / 键名与 ref/TOOLKIT_STANDARD.md 一致）
 import { DEFAULT_HAND } from './default_hand.js';
 import { h5DeviceSelectOptions } from './h5/index.js';
-export const APP_VERSION = '1.0.0';
-export const SETTINGS_VERSION = 1;
+export const APP_VERSION = '1.0.1';
+export const SETTINGS_VERSION = 2;
 export const STORE_KEY = 'zumaTool.settings';
 export const APP_ID = 'zuma-tool';
 const ALL8 = 'applovin,facebook,google,mintegral,moloco,tiktok,unity,generic';
@@ -83,11 +83,13 @@ export const GROUPS = [
     ['suckSpeed', '失败时吸入黑洞速度(球径/秒)', 'range', 9, 1, 40, 0.5],
   ]],
   ['消除特效', [
+    ['fxGhost', '球先变半透明“气泡”(参考 f_021)', 'range', 1, 0, 1, 0.05],
+    ['fxGlowAdd', '光雾用相加混合(关 = 参考的柔和雾)', 'bool', false],
     ['fxGlow', '彩色光雾强度', 'range', 0.85, 0, 2, 0.05],
-    ['fxSplat', '液体飞溅块数(每球)', 'range', 7, 0, 30, 1],
-    ['fxShards', '碎屑/尘点数(每球)', 'range', 16, 0, 60, 1],
-    ['fxFlash', '白色闪光强度', 'range', 0.75, 0, 1.5, 0.05],
-    ['fxLife', '特效时长(秒)', 'range', 0.75, 0.2, 3, 0.05],
+    ['fxSplat', '液体飞溅块数(每球，参考视频没有，默认 0)', 'range', 0, 0, 30, 1],
+    ['fxShards', '深色碎片数(每球)', 'range', 28, 0, 60, 1],
+    ['fxFlash', '白色闪光强度', 'range', 0.45, 0, 1.5, 0.05],
+    ['fxLife', '特效时长(秒)', 'range', 0.6, 0.2, 3, 0.05],
     ['fxSpread', '飞散距离(×球径)', 'range', 1.4, 0.3, 4, 0.05],
     ['fxComboBoost', '连击时特效放大', 'range', 0.15, 0, 1, 0.01],
   ]],
@@ -227,7 +229,7 @@ export function migrate(obj) {
     if (s.h5Format === 'tiktok,google,mintegral,generic') s.h5Format = ALL8;
     v = 1;
   }
-  const OLD = { /* 版本 → 旧默认（仍等于旧默认才替换），v1 为首个正式版 */ };
+  const OLD = { /* 版本 → 旧默认（仍等于旧默认才替换为新默认） */ 2: { hitRadius: 0.92, fxSplat: 7, fxShards: 16, fxFlash: 0.75, fxLife: 0.75, failSize: 0.46, discText: '广告素材宣传 场景表现非一定关卡 触发相应模块出现', frogStone: '#7f6f5c', seed: 7 } };
   for (const nv of Object.keys(OLD).map(Number).sort((a, b) => a - b)) if (v < nv) { for (const k in OLD[nv]) if (s[k] === OLD[nv][k]) delete s[k]; v = nv; }
   const out = { ...DEFS };
   for (const k in DEFS) if (k in s && typeof s[k] === typeof DEFS[k]) out[k] = s[k];

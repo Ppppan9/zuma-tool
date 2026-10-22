@@ -160,7 +160,7 @@ export function failBadge(S, size) {
   const gr = g.createRadialGradient(R * 0.8, R * 0.7, R * 0.1, R, R, R * 0.84); gr.addColorStop(0, mix(S.failColor, '#ffffff', 0.08)); gr.addColorStop(1, mix(S.failColor, '#000000', 0.12));
   g.fillStyle = gr; g.beginPath(); g.arc(R, R, R * 0.84, 0, 7); g.fill();
   g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  let fs = R * 0.62; g.font = `italic 900 ${fs}px "Arial Black","Impact","Noto Sans CJK SC",sans-serif`; const w = g.measureText(S.failText).width; if (w > R * 1.5) { fs *= R * 1.5 / w; g.font = `italic 900 ${fs}px "Arial Black","Impact","Noto Sans CJK SC",sans-serif`; }
-  g.save(); g.translate(R, R + fs * 0.04); g.transform(1, 0, -0.08, 1, 0, 0); g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowOffsetY = 3; g.shadowBlur = 4; g.fillText(S.failText, 0, 0); g.restore();
+  let fs = R * 0.7; g.font = `900 ${fs}px "Arial Black","Impact","Noto Sans CJK SC",sans-serif`; const w = g.measureText(S.failText).width; if (w > R * 1.5) { fs *= R * 1.5 / w; g.font = `900 ${fs}px "Arial Black","Impact","Noto Sans CJK SC",sans-serif`; }
+  g.save(); g.translate(R, R + fs * 0.04); g.shadowColor = 'rgba(0,0,0,0.25)'; g.shadowOffsetY = 3; g.shadowBlur = 4; g.fillText(S.failText, 0, 0); g.restore();
   return c;
 }

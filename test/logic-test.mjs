@@ -65,4 +65,5 @@ ok(T.len > 1500 && Math.abs(T.hole.x - T.cx) < T.R, `轨道长度 ${T.len}px，�
 // 9 设置迁移
 { const m = migrate({ handImg: 'x', sfxVol: 0.3, ballD: 66 }); ok(m.handImage === 'x' && m.sfxVolume === 0.3 && m.ballSize === 66 && m.chainSpeed === DEFS.chainSpeed, 'migrate v0 → v' + SETTINGS_VERSION + '：旧键改名、补默认');
   const m2 = migrate({ version: 1, settings: { ballSize: 70, h5AutoPlay: true } }); ok(m2.ballSize === 70 && m2.h5AutoPlay === true, 'migrate 不覆盖用户值'); ok(DEFS.h5AutoPlay === false && DEFS.autoRec === false, 'H5 自动演示 / 自动录制默认关'); }
+{ const m3 = migrate({ version: 1, settings: { hitRadius: 0.92, fxSplat: 7, failSize: 0.5, ballSize: 80 } }); ok(m3.hitRadius === DEFS.hitRadius && m3.fxSplat === DEFS.fxSplat && m3.failSize === 0.5 && m3.ballSize === 80, 'migrate v1 → v2：旧默认换新默认（hitRadius ' + m3.hitRadius + ', fxSplat ' + m3.fxSplat + '），用户改过的值保留'); }
 console.log(fail ? 'SOME FAIL' : 'ALL PASS'); process.exit(fail ? 1 : 0);
