@@ -104,10 +104,11 @@ export class Zuma {
   }
   tryMatch(i, comboLevel) {
     const [a, b] = this.runAt(i); if (b - a + 1 < this.S.matchMin) return false;
-    const gone = this.balls.splice(a, b - a + 1);
+    const P0 = this.balls.slice(a, b + 1).map(g => this.pos(g)); // 拆出前取位置（插入中的球 = 链外侧的挤出位置）
+    const gone = this.balls.splice(a, b - a + 1); gone.forEach((g, q) => { g.px = P0[q].x; g.py = P0[q].y; });
     const level = comboLevel; this.combo = level; this.maxCombo = Math.max(this.maxCombo, level); this.removed += gone.length; this.matches++;
-    this.events.push({ type: 'match', combo: level, balls: gone.map(g => { const p = this.pos(g); return { x: p.x, y: p.y, c: g.c, id: g.id }; }) });
-    for (const g of gone) { const p = this.pos(g); this.dying.push({ id: g.id, c: g.c, x: p.x, y: p.y, t: 0, s: g.s }); }
+    this.events.push({ type: 'match', combo: level, balls: gone.map(g => { const p = { x: g.px, y: g.py }; return { x: p.x, y: p.y, c: g.c, id: g.id }; }) });
+    for (const g of gone) { const p = { x: g.px, y: g.py }, q = this.T.at(g.s); this.dying.push({ id: g.id, c: g.c, x: p.x, y: p.y, t: 0, s: g.s, off: Math.hypot(p.x - q.x, p.y - q.y) > 2 }); }
     if (a < this.balls.length) this.balls[a].hold = this.S.pullDelay ?? 0.15;
     if (a < this.balls.length && a > 0) this.balls[a].tag = level; // 缺口前段首球：记住连击层级（回拉相接后 +1）
     return true;
@@ -121,13 +122,14 @@ export class Zuma {
       for (let i = 1; i < B.length; i++) { const m = this.minNext(i); if (B[i].s < m) B[i].s = m; }
       this.stepDying(dt); this.pushDying();
       while (B.length && B[B.length - 1].s >= this.T.len) { const g = B.pop(); this.events.push({ type: 'sucked', c: g.c }); }
-      this.stepShots(dt, false); return;
+      this.stepShots(dt, 'absorb'); return; // 失败吸入中：飞行球碰到链就消失（不再插入，也不穿过）
     }
     if (this.state === 'win') { this.stepShots(dt, false); this.stepDying(dt); return; }
     this.stepDying(dt);
     // 插入生长
     const done = [];
-    for (const b of B) { if (b.g < 1) { b.g = Math.min(1, b.g + dt / S.insertDur); b.fly = Math.max(0, 1 - b.g); if (b.g >= 1) done.push(b); } }
+    const early = [];
+    for (const b of B) { if (b.g < 1) { const g0 = b.g; b.g = Math.min(1, b.g + dt / S.insertDur); b.fly = Math.max(0, 1 - b.g); const at = S.insertMatchAt ?? 1; if (g0 < at && b.g >= at && at < 1) early.push(b); if (b.g >= 1) done.push(b); } }
     // 分段推进 / 回拉
     const segs = this.segments(), old = B.map(b => b.s);
     let speed = S.chainSpeed * D; const head = B.length ? B[B.length - 1].s / this.T.len : 0;
@@ -157,6 +159,7 @@ export class Zuma {
     for (let i = 0; i < B.length; i++) B[i].roll += (B[i].s - old[i]) / (D / 2);
     // 相接 → 连击判定
     for (const b of joins) { const i = B.indexOf(b); if (i < 0) continue; const lvl = (b.tag || 0) + 1; b.tag = 0; this.events.push({ type: 'join', c: b.c }); this.tryMatch(i, lvl); }
+    for (const b of early) { const i = B.indexOf(b); if (i >= 0) this.tryMatch(i, 1); } // 参考：新球刚落到链外侧就成立三消
     for (const b of done) { const i = B.indexOf(b); b.ins = false; if (i >= 0) this.tryMatch(i, 1); }
     this.stepShots(dt, true);
     if (this.pendingPromote && !this.shots.length) { // 发射后：下一颗进嘴（smart：若预告色凑不出消除，按概率换成能消除的颜色）
@@ -169,16 +172,20 @@ export class Zuma {
   }
   pushDying() { // 消除中的球被相邻链球推开（沿轨道），保证不与链球重叠
     const B = this.balls, D = this.D;
-    for (const d of this.dying) { const sc = this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1, need = D / 2 * (1 + sc) * 1.012; let moved = false;
+    for (const d of this.dying) { if (d.off) continue; const sc = this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1, need = D / 2 * (1 + sc) * 1.012; let moved = false;
       for (const b of B) { if (Math.abs(b.s - d.s) >= need * 1.6) continue; const pb = this.T.at(b.s); if (Math.hypot(pb.x - d.x, pb.y - d.y) >= need) continue; d.s = b.s <= d.s ? this.chordS(b.s, need) : this.chordSBack(b.s, need); const q = this.T.at(d.s); d.x = q.x; d.y = q.y; moved = true; }
       if (moved) { const p = this.T.at(d.s); d.x = p.x; d.y = p.y; } }
     // 消除中的球之间也不重叠：按弧长排序，挤开时沿轨道两侧对称分开
-    const L = this.dying.slice().sort((p, q) => p.s - q.s), scl = d => this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1;
+    const L = this.dying.filter(d => !d.off).sort((p, q) => p.s - q.s), scl = d => this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1;
     for (let it = 0; it < 3; it++) for (let i = 1; i < L.length; i++) { const a = L[i - 1], b = L[i], need = D / 2 * (scl(a) + scl(b)) * 1.012, dd = Math.hypot(b.x - a.x, b.y - a.y); if (dd < need) { b.s = this.chordS(a.s, need); const p = this.T.at(b.s); b.x = p.x; b.y = p.y; } }
     // 消除中的球被后方推到前方链球时：把前方链球往前顶（再做一次链约束），不重叠
-    { let changed = false; for (const d of this.dying) { const sc = this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1, need = D / 2 * (1 + sc) * 1.012;
+    { let changed = false; for (const d of this.dying) { if (d.off) continue; const sc = this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1, need = D / 2 * (1 + sc) * 1.012;
         for (const b of B) { if (b.s <= d.s || b.s - d.s > need * 1.6) continue; const pb = this.T.at(b.s); if (Math.hypot(pb.x - d.x, pb.y - d.y) < need) { b.s = this.chordS(d.s, need); changed = true; } } }
       if (changed) for (let i = 1; i < B.length; i++) { const m = this.minNext(i); if (B[i].s < m) B[i].s = m; } }
+    // 轨道外（插入途中被消除）的球：在平面上被链球/其他消除球径向推开，不影响链
+    for (const d of this.dying) { if (!d.off) continue; const need = D * 1.012;
+      const obs = B.map(b => this.T.at(b.s)).concat(this.dying.filter(e => e !== d && !e.off));
+      for (let it = 0; it < 3; it++) for (const o of obs) { const dx = d.x - o.x, dy = d.y - o.y, dd = Math.hypot(dx, dy); if (dd < need && dd > 1e-6) { d.x = o.x + dx / dd * need; d.y = o.y + dy / dd * need; } } }
   }
   stepDying(dt) { for (const d of this.dying) d.t += dt; this.dying = this.dying.filter(d => d.t < this.S.popDur); }
   stepShots(dt, collide) {
@@ -189,7 +196,7 @@ export class Zuma {
       for (let q = 0; q < n && !hit; q++) {
         s.x += s.vx * dt / n; s.y += s.vy * dt / n; s.roll += dist / n / (D / 2);
         if (!collide) continue;
-        for (let i = 0; i < this.balls.length; i++) { const b = this.balls[i]; if (b.s < this.T.visS) continue; const p = this.pos(b); if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < r * r) { this.insert(i, this.sideOf(i, s.x, s.y), s.c, s.x, s.y, s.id); hit = true; break; } }
+        for (let i = 0; i < this.balls.length; i++) { const b = this.balls[i]; if (b.s < this.T.visS) continue; const p = this.pos(b); if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < r * r) { if (collide !== 'absorb') this.insert(i, this.sideOf(i, s.x, s.y), s.c, s.x, s.y, s.id); hit = true; break; } }
       }
       if (hit || s.x < -D * 2 || s.x > 720 + D * 2 || s.y < -D * 2 || s.y > 1280 + D * 2) this.shots.splice(k, 1);
     }

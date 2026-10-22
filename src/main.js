@@ -67,7 +67,7 @@ function step(t) {
     else if (e.type === 'insert') sfx.play('insert', S);
     else if (e.type === 'match') {
       sfx.play('match', S, { combo: e.combo }); spawnMatchFx(fx, e, S, t / 1000, colorOf, fxSeed++);
-      window.__lastMatch = { combo: e.combo, t, n: e.balls.length }; window.__matchLog = (window.__matchLog || []).concat([[Math.round(t), e.combo, e.balls.length]]);
+      window.__lastMatch = { combo: e.combo, t, n: e.balls.length, c: [e.balls.reduce((a, b) => a + b.x, 0) / e.balls.length, e.balls.reduce((a, b) => a + b.y, 0) / e.balls.length] }; window.__matchLog = (window.__matchLog || []).concat([[Math.round(t), e.combo, e.balls.length]]);
       window.__maxCombo = Math.max(window.__maxCombo || 0, e.combo); if (e.combo >= 2) status(`连击 ×${e.combo}！`);
     } else if (e.type === 'fail') { failAt = t; sfx.play('suck', S); window.__failed = true; status('失败：球链进洞'); }
     else if (e.type === 'win') { winAt = t; sfx.play('win', S); window.__finished = true; status('通关！'); onFinish(); }
