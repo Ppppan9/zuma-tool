@@ -28,7 +28,7 @@ export function buildSprites({ S, T, view, K, bgCanvas, handImg, colorOf, endDra
     for (let c = 0; c < nC; c++) {
       const hex = colorHex(S, c), t = ballTextures(hex, 101 + c * 17, S, BALL_STYLES[c]), map = new THREE.CanvasTexture(t.map); map.colorSpace = THREE.SRGBColorSpace;
       const m = new THREE.Mesh(new THREE.SphereGeometry(D / 2, 48, 32), new THREE.MeshPhysicalMaterial({ map, bumpMap: new THREE.CanvasTexture(t.bump), bumpScale: S.runeBump, roughness: S.ballRough, clearcoat: 0.3, clearcoatRoughness: 0.35, envMapIntensity: S.ballEnv }));
-      m.position.z = D / 2; m.rotation.set(0.3, 0.5 + c, 0.2); snap('ball_' + c, m, D * 0.85);
+      m.position.z = D / 2; m.rotation.set(0.3, 0.5 + c, 0.2); snap('ball_' + c, m, D * 1.1);
     }
     const fr = makeFrog(S, D); fr.userData.gem.color.set(colorOf(0)); snap('frog', fr, box / 2);
     rd.dispose(); rd.forceContextLoss && rd.forceContextLoss();
