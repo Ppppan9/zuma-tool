@@ -6,6 +6,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { makeFrog, hasWebGL } from '../scene3d.js';
 import { mk, colorHex, ballTextures, BALL_STYLES, ballSprite2D, failBadge, hexRGB } from '../paint.js';
 import { DW } from '../track.js';
+import { mulberry } from '../logic.js';
 const KS = 2; // 素材超采样（每设计像素 2 像素）
 export function buildSprites({ S, T, view, K, bgCanvas, handImg, colorOf, endDraw }) {
   const out = {}, D = S.ballSize, nC = Math.max(4, S.colorCount || 4);
@@ -39,13 +40,14 @@ export function buildSprites({ S, T, view, K, bgCanvas, handImg, colorOf, endDra
   for (const th of ['ruins', 'grey']) if (bgCanvas[th]) out['background_' + th] = { c: bgCanvas[th], w: view.w, h: view.h, ax: 0, ay: 0 };
   // ---- 特效（单位尺寸素材：w=h=1，图层缩放 = 页面绘制尺寸） ----
   const blob = (key, fn, n = 128) => { const c = mk(n, n), g = c.getContext('2d'); fn(g, n); out[key] = { c, w: 1, h: 1, ax: 0.5, ay: 0.5 }; };
-  blob('fx_flash', (g, n) => { const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,250,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, n); });
-  for (let c = 0; c < nC; c++) { const [r, gg, b] = hexRGB(colorHex(S, c));
-    blob('fx_glow_' + c, (g, n) => { const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); gr.addColorStop(0, `rgba(${r},${gg},${b},0.9)`); gr.addColorStop(0.5, `rgba(${r},${gg},${b},0.4)`); gr.addColorStop(1, `rgba(${r},${gg},${b},0)`); g.fillStyle = gr; g.fillRect(0, 0, n, n); });
-    blob('fx_ghost_' + c, (g, n) => { const R = n * 0.46; g.fillStyle = `rgba(${Math.min(255, r + 110)},${Math.min(255, gg + 120)},${Math.min(255, b + 120)},0.55)`; g.beginPath(); g.arc(n / 2, n / 2, R, 0, 7); g.fill(); g.setLineDash([R * 0.18, R * 0.12]); g.lineWidth = R * 0.07; g.strokeStyle = `rgba(${r * 0.3 | 0},${gg * 0.3 | 0},${b * 0.35 | 0},0.9)`; g.stroke(); });
-    blob('fx_splat_' + c, (g, n) => { g.fillStyle = `rgb(${r},${gg},${b})`; g.beginPath(); for (let i = 0; i <= 14; i++) { const a = i / 14 * 6.283, rr = n * (0.3 + 0.12 * Math.sin(i * 2.7 + c)); g.lineTo(n / 2 + Math.cos(a) * rr, n / 2 + Math.sin(a) * rr); } g.fill(); });
-    blob('fx_shard_' + c, (g, n) => { g.fillStyle = `rgb(${r * 0.45 | 0},${gg * 0.45 | 0},${b * 0.45 | 0})`; g.beginPath(); g.moveTo(n * 0.5, n * 0.15); g.lineTo(n * 0.85, n * 0.55); g.lineTo(n * 0.4, n * 0.85); g.lineTo(n * 0.2, n * 0.45); g.fill(); }, 64);
-    blob('fx_dust_' + c, (g, n) => { const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); gr.addColorStop(0, `rgba(${(r + 200) / 2 | 0},${(gg + 190) / 2 | 0},${(b + 170) / 2 | 0},0.8)`); gr.addColorStop(1, 'rgba(200,190,170,0)'); g.fillStyle = gr; g.fillRect(0, 0, n, n); }, 64); }
+  blob('fx_sliver', (g, n) => { g.strokeStyle = '#fff'; g.lineWidth = n * 0.11; g.lineCap = 'round'; g.beginPath(); g.arc(n / 2, n * 0.95, n * 0.45, -Math.PI / 2 - 0.6, -Math.PI / 2 + 0.6); g.stroke(); }, 64);
+  for (let c = 0; c < nC; c++) { const [r, gg, b] = hexRGB(colorHex(S, c)), pale = a => `rgba(${Math.min(255, r * 0.55 + 125) | 0},${Math.min(255, gg * 0.55 + 130) | 0},${Math.min(255, b * 0.55 + 135) | 0},${a})`, dk = f => `rgb(${r * f | 0},${gg * f | 0},${Math.min(255, b * f + 18) | 0})`;
+    // 与 src/fx.js 同一画法：sc（设计 px）= 素材 1 单位
+    blob('fx_glow_' + c, (g, n) => { const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); gr.addColorStop(0, pale(1)); gr.addColorStop(0.62, pale(0.8)); gr.addColorStop(1, pale(0)); g.fillStyle = gr; g.fillRect(0, 0, n, n); });
+    blob('fx_ghost_' + c, (g, n) => { const R = n * 0.47; g.fillStyle = pale(0.5); g.beginPath(); g.arc(n / 2, n / 2, R, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,0.18)'; g.beginPath(); g.ellipse(n / 2 - R * 0.3, n / 2 - R * 0.35, R * 0.35, R * 0.2, -0.5, 0, 7); g.fill(); g.setLineDash([R * 0.16, R * 0.1]); g.lineWidth = R * 0.075; g.strokeStyle = dk(0.22); g.globalAlpha = 0.9; g.beginPath(); g.arc(n / 2, n / 2, R, 0, 7); g.stroke(); });
+    blob('fx_crack_' + c, (g, n) => { const R = n / 2 / 1.1, q = mulberry(31 + c); g.translate(n / 2, n / 2); g.lineCap = 'round'; g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = R * 0.07; for (let i = 0; i < 11; i++) { const an = q() * 6.283, L = R * (0.55 + q() * 0.4), bd = (q() - 0.5) * 0.5; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(Math.cos(an + bd) * L * 0.5, Math.sin(an + bd) * L * 0.5, Math.cos(an) * L, Math.sin(an) * L); g.stroke(); } g.strokeStyle = dk(0.25); g.lineWidth = R * 0.08; g.beginPath(); for (let k = 0; k <= 22; k++) { const an = k / 22 * 6.283, rr = R * (k % 2 ? 1.04 : 0.94); k ? g.lineTo(Math.cos(an) * rr, Math.sin(an) * rr) : g.moveTo(rr, 0); } g.stroke(); });
+    blob('fx_shard_' + c, (g, n) => { const R = n / 2; g.translate(n / 2, n / 2); g.fillStyle = dk(0.28); g.beginPath(); g.moveTo(-R, 0); g.lineTo(-R * 0.2, -R * 0.38); g.lineTo(R, 0); g.lineTo(R * 0.1, R * 0.3); g.closePath(); g.fill(); }, 64);
+  }
   // ---- 文字 / 徽章 / 手 / 结束页 ----
   { const fs = S.discSize, w = DW, h = fs * 1.6, c = mk(w * KS, h * KS), g = c.getContext('2d'); g.scale(KS, KS); g.globalAlpha = S.textOpacity; g.fillStyle = '#fff'; g.font = `${fs}px "PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'bottom'; g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 3; g.fillText(S.discText || '', w / 2, h - 2); out.disclaimer = { c, w, h, ax: w / 2, ay: h - 2 }; }
   { const size = S.failSize * DW * 1.15, c = failBadge(S, Math.round(size * KS)); out.fail_badge = { c, w: size, h: size, ax: size / 2, ay: size / 2 }; }

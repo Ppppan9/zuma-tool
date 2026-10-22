@@ -1,6 +1,6 @@
 {
   "name": "zuma-tool",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "祖玛核玩工具（单文件离线版）",
   "type": "module",
   "scripts": {

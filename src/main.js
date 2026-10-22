@@ -80,7 +80,7 @@ function step(t) {
 
 // ---------- 渲染 ----------
 function ballList(t) {
-  const D = S.ballSize, out = Z.renderList().filter(b => b.y > view.y0 - D && !(b.dying != null && S.fxGhost > 0));
+  const D = S.ballSize, out = Z.renderList().filter(b => b.y > view.y0 - D);
   if (Z.state === 'play' || (Z.state === 'fail' && !failShowAt)) { const m = Z.muzzle(), u = clamp01((t - mouthT) / 90); out.push({ id: 1e7 + Z.shotsFired, c: Z.cur, x: m.x, y: m.y, z: S.ballSize * 0.3, scale: mouthT ? (t - mouthT < 35 ? 0.01 : 0.3 + 0.7 * easeOut(u)) : 1, mouth: true }); }
   return out;
 }
@@ -222,7 +222,7 @@ function frameItems(t) { // 当前帧全部可见元素（设计坐标）：AE �
   const out = [], D = S.ballSize; out.push({ id: 'background', asset: 'background_' + themeNow, x: view.x0, y: view.y0, sc: 1, z: 0 });
   out.push({ id: 'frog', asset: 'frog', x: Z.frog.x, y: Z.frog.y, sc: 1, rot: Z.frog.ang, z: 2 });
   for (const b of draw.balls || []) out.push({ id: (b.mouth ? 'mouth_' : 'ball_') + b.id, asset: 'ball_' + b.c, x: b.x, y: b.y, sc: b.scale, z: b.mouth ? 3 : 1, c: b.c, h: b.z });
-  for (const p of fxItems(fx, t / 1000)) out.push({ id: 'fx_' + (p.p.id || (p.p.id = ++frameItems.n)), asset: p.asset, x: p.x, y: p.y, sc: p.sc, rot: p.rot || 0, op: p.op, z: 4, add: p.add });
+  for (const p of fxItems(fx, t / 1000)) out.push({ id: 'fx_' + (p.p.id || (p.p.id = ++frameItems.n)), asset: p.asset, x: p.x, y: p.y, sc: p.sc, rot: p.rot || 0, op: p.op, z: p.z || 4, add: p.add });
   if (draw.blur > 0.05) out.push({ id: 'blur', asset: null, blur: draw.blur, z: 5 });
   if (S.discShow && S.discText) out.push({ id: 'disclaimer', asset: 'disclaimer', x: DW / 2, y: view.y0 + view.h - S.discY, sc: 1, z: 6 });
   if (failShowAt && t >= failShowAt) { const u = (t - failShowAt) / (S.failScaleDur * 1000); out.push({ id: 'result_fail', asset: 'fail_badge', x: DW / 2, y: DH / 2, sc: Math.max(0.001, easeBack(u)), rot: (1 - easeOut(u)) * -0.35, op: clamp01(u * 4), z: 7 }); }

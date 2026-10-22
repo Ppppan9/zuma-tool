@@ -1,8 +1,8 @@
 // 设置定义：所有可调参数（中文标签）。版本号 + 迁移（通用分组 / 键名与 ref/TOOLKIT_STANDARD.md 一致）
 import { DEFAULT_HAND } from './default_hand.js';
 import { h5DeviceSelectOptions } from './h5/index.js';
-export const APP_VERSION = '1.0.1';
-export const SETTINGS_VERSION = 2;
+export const APP_VERSION = '1.0.2';
+export const SETTINGS_VERSION = 3;
 export const STORE_KEY = 'zumaTool.settings';
 export const APP_ID = 'zuma-tool';
 const ALL8 = 'applovin,facebook,google,mintegral,moloco,tiktok,unity,generic';
@@ -78,19 +78,27 @@ export const GROUPS = [
     ['fireCooldown', '发射间隔(秒)', 'range', 0.2, 0, 2, 0.01],
     ['insertDur', '插入挤开动画(秒)', 'range', 0.12, 0.02, 0.6, 0.01],
     ['hitRadius', '碰撞半径(×球径，≥1 不穿模)', 'range', 1, 0.5, 1.2, 0.01],
-    ['pullDelay', '消除后前段停顿再回拉(秒)', 'range', 0.05, 0, 1, 0.01],
-    ['popDur', '消除缩小(秒)', 'range', 0.2, 0.05, 1, 0.01],
+    ['pullDelay', '消除后前段停顿再回拉(秒，参考 ≈0.17)', 'range', 0.17, 0, 1, 0.01],
+    ['gapRule', '缺口合拢规则', 'select', 'always', [['always', '总是合拢（参考视频）'], ['match', '仅两端同色时回拉（经典祖玛）']]],
+    ['closeRate', '合拢缓出系数(1/秒，0=匀速 pullSpeed)', 'range', 6, 0, 30, 0.5],
+    ['closeMin', '合拢最小速度(球径/秒)', 'range', 2, 0.2, 20, 0.1],
+    ['closeMax', '合拢最大速度(球径/秒，参考≈8)', 'range', 8, 1, 30, 0.5],
+    ['dyingShrink', '消除的球逐渐缩小（关 = 参考：保持原大小后变气泡）', 'bool', false],
+    ['popDur', '消除：球保持原样(裂纹阶段)时长(秒，参考 0.167)', 'range', 0.167, 0.05, 1, 0.01],
     ['suckSpeed', '失败时吸入黑洞速度(球径/秒)', 'range', 9, 1, 40, 0.5],
   ]],
   ['消除特效', [
+    ['fxTimeScale', '消除特效时间缩放(1 = 参考节奏)', 'range', 1, 0.3, 3, 0.05],
+    ['fxCrack', '裂纹阶段强度(白色放射裂纹 + 锯齿边)', 'range', 1, 0, 1, 0.05],
+    ['fxSlivers', '气泡破裂白色细弧数(每球)', 'range', 8, 0, 30, 1],
     ['fxGhost', '球先变半透明“气泡”(参考 f_021)', 'range', 1, 0, 1, 0.05],
     ['fxGlowAdd', '光雾用相加混合(关 = 参考的柔和雾)', 'bool', false],
-    ['fxGlow', '彩色光雾强度', 'range', 1.4, 0, 2, 0.05],
+    ['fxGlow', '同色柔和光雾强度', 'range', 1, 0, 2, 0.05],
     ['fxSplat', '液体飞溅块数(每球，参考视频没有，默认 0)', 'range', 0, 0, 30, 1],
-    ['fxShards', '深色碎片数(每球)', 'range', 28, 0, 60, 1],
+    ['fxShards', '深色碎片数(每球)', 'range', 24, 0, 60, 1],
     ['fxFlash', '白色闪光强度', 'range', 0.45, 0, 1.5, 0.05],
-    ['fxLife', '特效时长(秒)', 'range', 0.8, 0.2, 3, 0.05],
-    ['fxSpread', '飞散距离(×球径)', 'range', 1.4, 0.3, 4, 0.05],
+    ['fxLife', '(旧)特效时长(秒，v1.0.2 起由时间缩放控制)', 'range', 0.8, 0.2, 3, 0.05],
+    ['fxSpread', '碎片飞散距离(×球径)', 'range', 1, 0.3, 4, 0.05],
     ['fxComboBoost', '连击时特效放大', 'range', 0.15, 0, 1, 0.01],
   ]],
   ['场景与光照', [
@@ -229,7 +237,7 @@ export function migrate(obj) {
     if (s.h5Format === 'tiktok,google,mintegral,generic') s.h5Format = ALL8;
     v = 1;
   }
-  const OLD = { /* 版本 → 旧默认（仍等于旧默认才替换为新默认） */ 2: { hitRadius: 0.92, fxSplat: 7, fxShards: 16, fxFlash: 0.75, fxLife: 0.75, failSize: 0.46, discText: '广告素材宣传 场景表现非一定关卡 触发相应模块出现', frogStone: '#7f6f5c', seed: 7, ballEnv: 0.45, fxGlow: 0.85 } };
+  const OLD = { /* 版本 → 旧默认（仍等于旧默认才替换为新默认） */ 2: { hitRadius: 0.92, fxSplat: 7, fxShards: 16, fxFlash: 0.75, fxLife: 0.75, failSize: 0.46, discText: '广告素材宣传 场景表现非一定关卡 触发相应模块出现', frogStone: '#7f6f5c', seed: 7, ballEnv: 0.45, fxGlow: 0.85 }, 3: { popDur: 0.2, pullDelay: 0.05, fxGlow: 1.4, fxShards: 28, fxSpread: 1.4 } };
   for (const nv of Object.keys(OLD).map(Number).sort((a, b) => a - b)) if (v < nv) { for (const k in OLD[nv]) if (s[k] === OLD[nv][k]) delete s[k]; v = nv; }
   const out = { ...DEFS };
   for (const k in DEFS) if (k in s && typeof s[k] === typeof DEFS[k]) out[k] = s[k];

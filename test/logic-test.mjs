@@ -21,7 +21,7 @@ ok(T.len > 1500 && Math.abs(T.hole.x - T.cx) < T.R, `轨道长度 ${T.len}px，�
   ok(cols(z) === '3202' + '3'.slice(0, 0) + '3' || cols(z) === '32023', `消除后颜色 ${cols(z)}（缺口两端：黄|红…）`);
   const z2 = new Zuma(S2, T, { colors: [3, 2, 1, 1, 2, 0, 3] }); const p2 = z2.pos(z2.balls[3]); z2.insert(3, 1, 1, p2.x, p2.y);
   run(z2, 0.13 + Math.max(S2.pullDelay, S2.popDur) + 0.02, 1 / 240); const f = z2.balls[2]; const sA = f.s; run(z2, 0.05, 1 / 240); const v = (f.s - sA) / 0.05;
-  ok(v < -S2.pullSpeed * D * 0.9, `前段回拉速度 ${(v / D).toFixed(2)} 球径/秒（推进 1，期望≈-4）`);
+  ok(v < -S2.pullSpeed * D * 0.9, `前段回拉速度 ${(v / D).toFixed(2)} 球径/秒（推进 1；v1.0.2 缓出合拢，上限 closeMax）`);
   run(z2, 1.5, 1 / 240); ok(z2.segments().length === 1 && cols(z2) === '32203' || z2.segments().length === 1, `回拉后相接成 1 段：${cols(z2)}`); }
 // 4 连击级联：0 0 | 1 1 + 1 | 0 0 → 绿消除后两红回拉相接 → 4 红消除（combo 2）
 { const S3 = { ...S, chainSpeed: 1, pullSpeed: 4 }; const z = new Zuma(S3, T, { colors: [3, 0, 0, 1, 1, 0, 0, 2] }); const p = z.pos(z.balls[4]);

@@ -52,7 +52,7 @@ export class Zuma {
     // 插入中的球：缺口还没完全张开时被相邻球“挤”在轨道旁（参考视频：新球先浮在链外侧，随缺口张开滑入），任何时刻不与相邻球重叠
     const B = this.balls, k = B.indexOf(b), D = this.D;
     if (k >= 0) { const nb = []; for (let j = k - 2; j <= k + 2; j++) if (j !== k && j >= 0 && j < B.length && B[j].g >= 1) { const q = this.T.at(B[j].s); q.r = D; nb.push(q); }
-      for (const d of this.dying) if (Math.hypot(d.x - x, d.y - y) < D * 2) nb.push({ x: d.x, y: d.y, r: D / 2 * (1 + Math.max(0.01, 1 - d.t / this.S.popDur)) * 1.01 });
+      for (const d of this.dying) if (Math.hypot(d.x - x, d.y - y) < D * 2) nb.push({ x: d.x, y: d.y, r: D / 2 * (1 + (this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1)) * 1.01 });
       const f = this.frog; for (let it = 0; it < 30; it++) { let moved = false; for (const n of nb) { let dx = x - n.x, dy = y - n.y, d = Math.hypot(dx, dy); if (d >= n.r) continue; if (d < 1e-3) { dx = f.x - n.x; dy = f.y - n.y; d = Math.hypot(dx, dy) || 1; } x = n.x + dx / d * n.r * 1.0005; y = n.y + dy / d * n.r * 1.0005; moved = true; } if (!moved) break; }
       const bad = () => nb.filter(n => Math.hypot(x - n.x, y - n.y) < n.r * 0.999);
       if (bad().length) { // 交替投影没收敛（急弯处夹在两球之间）：取两相邻球外接圆交点里离目标最近且不冲突的点
@@ -69,7 +69,7 @@ export class Zuma {
     const D = this.D, L = this.T.len, out = [];
     for (const b of this.balls) { const p = this.pos(b); let sc = 1; const left = L - b.s; if (left < D * 0.9) sc = Math.max(0, Math.min(1, left / (D * 0.9))) * 0.6 + 0.4 * (left > 0); if (this.state === 'fail' && left < D) sc = Math.max(0, Math.min(1, left / D)); out.push({ id: b.id, c: b.c, x: p.x, y: p.y, scale: sc, s: b.s }); }
     for (const s of this.shots) out.push({ id: s.id, c: s.c, x: s.x, y: s.y, scale: 1, shot: true });
-    for (const d of this.dying) { const u = d.t / this.S.popDur; out.push({ id: d.id, c: d.c, x: d.x, y: d.y, scale: Math.max(0.01, 1 - u), dying: u }); }
+    for (const d of this.dying) { const u = d.t / this.S.popDur; out.push({ id: d.id, c: d.c, x: d.x, y: d.y, scale: this.S.dyingShrink ? Math.max(0.01, 1 - u) : 1, dying: u }); }
     return out;
   }
   muzzle() { const f = this.frog, r = this.S.mouthDist; return { x: f.x + Math.cos(f.ang) * r, y: f.y + Math.sin(f.ang) * r }; }
@@ -137,11 +137,16 @@ export class Zuma {
     segs.forEach(([a, b], j) => {
       let dv = 0;
       if (j === 0) dv = speed * dt;
-      else { const prev = B[a - 1]; if (B[a].hold > 0) B[a].hold -= dt; else if (prev && prev.c === B[a].c && prev.g >= 1 && B[a].g >= 1) { dv = -S.pullSpeed * S.chainSpeed * D * dt; pulling.add(a); } }
+      else { const prev = B[a - 1]; if (B[a].hold > 0) B[a].hold -= dt;
+        else if (prev && prev.g >= 1 && B[a].g >= 1 && (prev.c === B[a].c || S.gapRule === 'always')) {
+          // 回拉：参考视频里缺口无论两端是否同色都会合拢；速度 = 剩余缺口 × closeRate（指数缓出），夹在 [closeMin, closeMax] 球径/秒
+          const gap = Math.max(0, B[a].s - this.minNext(a)); let v = S.closeRate > 0 ? gap * S.closeRate : S.pullSpeed * S.chainSpeed * D;
+          v = Math.max(S.closeMin * D, Math.min(S.closeMax * D, v)); dv = -Math.min(gap, v * dt); pulling.add(a);
+        } }
       if (dv) {
         // 消除中的球（正在缩小）仍占位：段的首/尾不能挤进它们
-        if (dv > 0) for (const d of this.dying) if (d.s > B[b].s) { const lim = d.s - this.D / 2 * (2 - d.t / S.popDur) * 1.01 - B[b].s; if (lim < dv) dv = Math.max(0, lim); }
-        if (dv < 0) for (const d of this.dying) if (d.s < B[a].s) { const lim = d.s + this.D / 2 * (2 - d.t / S.popDur) * 1.01 - B[a].s; if (lim > dv) dv = Math.min(0, lim); }
+        if (dv > 0) for (const d of this.dying) if (d.s > B[b].s) { const lim = d.s - this.D / 2 * (1 + (S.dyingShrink ? 1 - d.t / S.popDur : 1)) * 1.01 - B[b].s; if (lim < dv) dv = Math.max(0, lim); }
+        if (dv < 0) for (const d of this.dying) if (d.s < B[a].s) { const lim = d.s + this.D / 2 * (1 + (S.dyingShrink ? 1 - d.t / S.popDur : 1)) * 1.01 - B[a].s; if (lim > dv) dv = Math.min(0, lim); }
         for (let i = a; i <= b; i++) B[i].s += dv;
       }
     });
@@ -164,12 +169,16 @@ export class Zuma {
   }
   pushDying() { // 消除中的球被相邻链球推开（沿轨道），保证不与链球重叠
     const B = this.balls, D = this.D;
-    for (const d of this.dying) { const sc = Math.max(0.01, 1 - d.t / this.S.popDur), need = D / 2 * (1 + sc) * 1.012; let moved = false;
+    for (const d of this.dying) { const sc = this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1, need = D / 2 * (1 + sc) * 1.012; let moved = false;
       for (const b of B) { if (Math.abs(b.s - d.s) >= need * 1.6) continue; const pb = this.T.at(b.s); if (Math.hypot(pb.x - d.x, pb.y - d.y) >= need) continue; d.s = b.s <= d.s ? this.chordS(b.s, need) : this.chordSBack(b.s, need); const q = this.T.at(d.s); d.x = q.x; d.y = q.y; moved = true; }
       if (moved) { const p = this.T.at(d.s); d.x = p.x; d.y = p.y; } }
     // 消除中的球之间也不重叠：按弧长排序，挤开时沿轨道两侧对称分开
-    const L = this.dying.slice().sort((p, q) => p.s - q.s), scl = d => Math.max(0.01, 1 - d.t / this.S.popDur);
+    const L = this.dying.slice().sort((p, q) => p.s - q.s), scl = d => this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1;
     for (let it = 0; it < 3; it++) for (let i = 1; i < L.length; i++) { const a = L[i - 1], b = L[i], need = D / 2 * (scl(a) + scl(b)) * 1.012, dd = Math.hypot(b.x - a.x, b.y - a.y); if (dd < need) { b.s = this.chordS(a.s, need); const p = this.T.at(b.s); b.x = p.x; b.y = p.y; } }
+    // 消除中的球被后方推到前方链球时：把前方链球往前顶（再做一次链约束），不重叠
+    { let changed = false; for (const d of this.dying) { const sc = this.S.dyingShrink ? Math.max(0.01, 1 - d.t / this.S.popDur) : 1, need = D / 2 * (1 + sc) * 1.012;
+        for (const b of B) { if (b.s <= d.s || b.s - d.s > need * 1.6) continue; const pb = this.T.at(b.s); if (Math.hypot(pb.x - d.x, pb.y - d.y) < need) { b.s = this.chordS(d.s, need); changed = true; } } }
+      if (changed) for (let i = 1; i < B.length; i++) { const m = this.minNext(i); if (B[i].s < m) B[i].s = m; } }
   }
   stepDying(dt) { for (const d of this.dying) d.t += dt; this.dying = this.dying.filter(d => d.t < this.S.popDur); }
   stepShots(dt, collide) {

@@ -12,7 +12,7 @@ const shot = async name => { const png = await p.evaluate(() => document.getElem
 const compare = (name, ref) => { execFileSync('python3', ['-c', `
 from PIL import Image, ImageDraw
 a=Image.open('screenshots/${name}.png').convert('RGB').resize((540,960)); b=Image.open('${ref}').convert('RGB').resize((540,960))
-W=Image.new('RGB',(1100,1000),(30,30,30)); W.paste(a,(0,40)); W.paste(b,(560,40)); d=ImageDraw.Draw(W); d.text((10,10),'zuma-tool v1.0.1: ${name}',fill=(255,255,255)); d.text((570,10),'reference: ${ref.split('/').pop()}',fill=(255,255,255)); W.save('screenshots/compare_${name}.png')`]); console.log('saved screenshots/compare_' + name + '.png'); };
+W=Image.new('RGB',(1100,1000),(30,30,30)); W.paste(a,(0,40)); W.paste(b,(560,40)); d=ImageDraw.Draw(W); d.text((10,10),'zuma-tool v1.0.2: ${name}',fill=(255,255,255)); d.text((570,10),'reference: ${ref.split('/').pop()}',fill=(255,255,255)); W.save('screenshots/compare_${name}.png')`]); console.log('saved screenshots/compare_' + name + '.png'); };
 const REF = '/workspace/zuma-bundle/ref/frames/';
 if (which.includes('open')) {
   await p.evaluate(() => { __game.setMany({}); let t = 100000; __game.renderAt(t); __game.newGame(); for (let i = 0; i <= 30; i++) __game.renderAt(t + i * 33.3); });
