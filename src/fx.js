@@ -13,7 +13,7 @@ export function spawnMatchFx(list, ev, S, t0, colorOf, seed) {
     for (let i = 0; i < S.fxSplat * boost; i++) { const a = r() * Math.PI * 2, sp = (0.3 + r() * 0.9) * S.fxSpread * D; const pts = []; const n = 7 + Math.floor(r() * 4); for (let k = 0; k < n; k++) pts.push(0.6 + r() * 0.5);
       list.push({ c: b.c, k: 'splat', x: b.x + Math.cos(a) * D * 0.15, y: b.y + Math.sin(a) * D * 0.15, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t0, life: L * (0.6 + r() * 0.5), r: D * (0.1 + r() * 0.16) * boost, pts, rot: r() * 6.3, hex: mix(hex, '#000000', 0.15 + r() * 0.3), hl: mix(hex, '#ffffff', 0.35) }); }
     for (let i = 0; i < S.fxShards * boost; i++) { const a = r() * Math.PI * 2, sp = (0.6 + r() * 1.2) * S.fxSpread * D;
-      list.push({ c: b.c, k: r() < 0.65 ? 'shard' : 'dust', x: b.x, y: b.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: L * (0.5 + r() * 0.6), r: D * (0.03 + r() * 0.05), rot: a, spin: (r() - 0.5) * 8, hex: mix(hex, '#000000', 0.6 + r() * 0.3), t0: t0 + 0.06 }); }
+      list.push({ c: b.c, k: r() < 0.65 ? 'shard' : 'dust', x: b.x, y: b.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: L * (0.5 + r() * 0.6), r: D * (0.045 + r() * 0.06), rot: a, spin: (r() - 0.5) * 8, hex: mix(hex, '#000000', 0.6 + r() * 0.3), t0: t0 + 0.06 }); }
   }
 }
 export function drawFx(g, list, t, S) {

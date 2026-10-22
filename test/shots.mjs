@@ -20,7 +20,7 @@ if (which.includes('open')) {
 }
 if (which.includes('combo')) { // 自动通关（带手指），在第一次 ≥2 连击发生后 ~120ms 截图
   const r = await p.evaluate(async () => { window.__lastMatch = null; window.__matchLog = []; window.__nodraw = true; let t = 200000; for (const seed of [7, 3, 11, 21, 42, 5]) { __game.setMany({ seed }); __game.renderAt(t); __game.newGame(); window.__lastMatch = null; let cd = 0;
-    for (let i = 0; i < 30 * 60; i++) { const Z = __game.Z; if (cd <= 0 && Z.canShoot()) { const p = Z.plan(); if (p) { Z.aim(p.x, p.y); Z.shoot(p.x, p.y); } cd = 18; } cd--; t += 33.3; __game.renderAt(t); const m = window.__lastMatch; if (m && m.combo >= 2 && t - m.t >= 0) { window.__nodraw = false; for (let k = 0; k < 8; k++) { t += 33.3; __game.renderAt(t); } return { ok: true, t, combo: m.combo, n: m.n, log: window.__matchLog.slice(-6) }; } if (window.__failed || window.__finished) break; } }
+    for (let i = 0; i < 30 * 60; i++) { const Z = __game.Z; if (cd <= 0 && Z.canShoot()) { const p = Z.plan(); if (p) { Z.aim(p.x, p.y); Z.shoot(p.x, p.y); } cd = 18; } cd--; t += 33.3; __game.renderAt(t); const m = window.__lastMatch; if (m && m.combo >= 2 && t - m.t >= 0) { window.__nodraw = false; for (let k = 0; k < 6; k++) { t += 33.3; __game.renderAt(t); } return { ok: true, t, combo: m.combo, n: m.n, log: window.__matchLog.slice(-6) }; } if (window.__failed || window.__finished) break; } }
     window.__nodraw = false; __game.renderAt(t); return { ok: false, log: window.__matchLog }; });
   console.log('combo capture', JSON.stringify(r)); await shot('combo_fx'); compare('combo_fx', REF + 'f_021.jpg');
 }
