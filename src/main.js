@@ -81,12 +81,12 @@ function step(t) {
 // ---------- 渲染 ----------
 function ballList(t) {
   const D = S.ballSize, out = Z.renderList().filter(b => b.y > view.y0 - D);
-  if (Z.state === 'play' || (Z.state === 'fail' && !failShowAt)) { const m = Z.muzzle(), u = clamp01((t - mouthT) / 90); out.push({ id: 1e7 + Z.shotsFired, c: Z.cur, x: m.x, y: m.y, z: S.ballSize / 2 + 6 * S.frogScale, scale: mouthT ? (t - mouthT < 35 ? 0.01 : 0.3 + 0.7 * easeOut(u)) : 1, mouth: true }); }
+  if (Z.state === 'play' || (Z.state === 'fail' && !failShowAt)) { const m = Z.muzzle(), u = clamp01((t - mouthT) / 90); out.push({ id: 1e7 + Z.shotsFired, c: Z.cur, x: m.x, y: m.y, z: S.ballSize * 0.3, scale: mouthT ? (t - mouthT < 35 ? 0.01 : 0.3 + 0.7 * easeOut(u)) : 1, mouth: true }); }
   return out;
 }
 let sprites2D = null, aeSpritesCache = null;
 function draw(t) {
-  const g = ctx, cw = cv.width, ch = cv.height, balls = ballList(t), frog = { ang: Z.frog.ang, gem: S.gemShowsNext ? colorOf(Z.next) : S.gemColor };
+  const g = ctx, cw = cv.width, ch = cv.height, balls = ballList(t), frog = { ang: Z.frog.ang, gem: S.gemShowsNext ? colorOf(Z.next) : S.gemColor, blink: S.frogBlink && (t % (S.blinkEvery * 1000)) < 140 };
   const blur = failAt ? S.failBlur * K * easeOut((t - failAt) / 700) : 0;
   g.setTransform(1, 0, 0, 1, 0, 0); g.filter = 'none'; g.globalAlpha = 1;
   if (R3) { const img = R3.render(balls, frog, S); if (blur > 0.2) { g.filter = `blur(${blur.toFixed(1)}px)`; g.drawImage(img, -blur * 2, -blur * 2, cw + blur * 4, ch + blur * 4); g.filter = 'none'; } else g.drawImage(img, 0, 0); }

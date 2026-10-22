@@ -27,46 +27,55 @@ function frogBackTexture(hex) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 export function makeFrog(S, D) {
+  // v1.0.1：按参考近景重做——宽扁大头（比身体宽）、张大的嘴含着球（嘴唇半包球）、头顶两只白色大眼（绿虹膜黑瞳）、
+  // 背部龟甲雕纹 + 小圆宝石（深金托，显示下一颗颜色）、四肢外张长趾；+x = 嘴朝向；单位 = 设计 px / (D/80)
   const G = new THREE.Group(); G.name = 'frog';
   const stoneTex = stoneTexture(S.frogStone, 7), backTex = frogBackTexture(S.frogStone);
   const stone = new THREE.MeshStandardMaterial({ color: 0xffffff, map: stoneTex, roughness: 0.78, metalness: 0.02, bumpMap: stoneTex, bumpScale: 1.2, name: 'pbr_frog_stone' });
   const back = new THREE.MeshStandardMaterial({ color: 0xffffff, map: backTex, roughness: 0.8, bumpMap: backTex, bumpScale: 2.5, name: 'pbr_frog_back' });
-  const stoneDark = new THREE.MeshStandardMaterial({ color: new THREE.Color(mix(S.frogStone, '#1a140c', 0.35)), map: stoneTex, roughness: 0.85, name: 'pbr_frog_stone_dark' });
-  const gold = new THREE.MeshStandardMaterial({ color: new THREE.Color(S.frogGold), roughness: 0.3, metalness: 0.9, name: 'pbr_frog_gold' });
-  const white = new THREE.MeshPhysicalMaterial({ color: 0xf2efe8, roughness: 0.2, clearcoat: 1, name: 'pbr_frog_eye' });
+  const stoneDark = new THREE.MeshStandardMaterial({ color: new THREE.Color(mix(S.frogStone, '#1a140c', 0.45)), map: stoneTex, roughness: 0.85, name: 'pbr_frog_stone_dark' });
+  const crevice = new THREE.MeshStandardMaterial({ color: 0x1d1a15, roughness: 0.95, name: 'pbr_frog_crevice' });
+  const gold = new THREE.MeshStandardMaterial({ color: new THREE.Color(S.frogGold), roughness: 0.35, metalness: 0.85, name: 'pbr_frog_gold' });
+  const white = new THREE.MeshPhysicalMaterial({ color: 0xf4f1ea, roughness: 0.25, clearcoat: 1, name: 'pbr_frog_eye' });
+  const iris = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(S.frogIris || '#4c8f3a'), roughness: 0.2, clearcoat: 1, name: 'pbr_frog_iris' });
   const black = new THREE.MeshPhysicalMaterial({ color: 0x0b0b0c, roughness: 0.1, clearcoat: 1, name: 'pbr_frog_pupil' });
-  const k = D / 80;
+  const k = D / 80, mouthX = S.mouthDist / (k * S.frogScale);
   const add = (m, x, y, z, rz = 0, par = G) => { m.position.set(x * k, y * k, z * k); m.rotation.z = rz; par.add(m); return m; };
   const E = (rx, ry, rz, mat) => ell(rx * k, ry * k, rz * k, mat);
+  add(E(56, 60, 8, crevice), -8, 0, 4);                                   // 底部暗缝（参考里青蛙轮廓有深色描边）
   for (const s of [-1, 1]) {
-    // 后腿：大腿 + 小腿 + 4 长趾（向后外张）
-    add(E(28, 15, 14, stone), -32, s * 44, 15, s * 0.75);
-    add(E(18, 9, 8, stone), -38, s * 62, 9, s * -0.5);
-    for (let t = 0; t < 4; t++) { const a = s * (2.0 + t * 0.35), L = 9; add(E(L, 4.4, 4, stone), -46 + Math.cos(a) * L, s * 66 + Math.sin(a) * L, 6, a); add(E(4.6, 4.6, 3.8, stoneDark), -46 + Math.cos(a) * L * 2, s * 66 + Math.sin(a) * L * 2, 5); }
-    // 前腿：上臂 + 4 长趾（向前外张）
-    add(E(20, 10, 10, stone), 22, s * 48, 14, s * -0.9);
-    for (let t = 0; t < 4; t++) { const a = s * (-0.3 - t * 0.4), L = 9; const bx = 32, by = s * 60; add(E(L, 3.8, 3.8, stone), bx + Math.cos(a) * L, by + Math.sin(a) * L, 7, a); add(E(4.6, 4.6, 3.6, stoneDark), bx + Math.cos(a) * L * 2, by + Math.sin(a) * L * 2, 6); }
+    // 后腿：粗大腿向后外张 + 脚掌 + 4 长趾（指向后外侧）
+    add(E(26, 13, 13, stone), -38, s * 44, 14, s * 0.9);
+    add(E(14, 9, 7, stone), -52, s * 60, 8, s * 0.2);
+    for (let t = 0; t < 4; t++) { const a = s * (1.9 + t * 0.38), L = 10, bx = -56, by = s * 66; add(E(L, 3.6, 3.6, stone), bx + Math.cos(a) * L, by + Math.sin(a) * L, 6, a); add(E(4.4, 4.4, 3.4, stoneDark), bx + Math.cos(a) * L * 2, by + Math.sin(a) * L * 2, 5); }
+    // 前腿：上臂向前外张 + 4 长指（指向前外侧）
+    add(E(18, 9, 10, stone), 10, s * 58, 13, s * -0.7);
+    for (let t = 0; t < 4; t++) { const a = s * (0.1 + t * 0.42), L = 10, bx = 20, by = s * 70; add(E(L, 3.4, 3.4, stone), bx + Math.cos(a) * L, by + Math.sin(a) * L, 6, a); add(E(4.2, 4.2, 3.2, stoneDark), bx + Math.cos(a) * L * 2, by + Math.sin(a) * L * 2, 5); }
   }
-  add(E(58, 54, 26, back), -12, 0, 24);                     // 身体（背甲雕纹）
-  add(E(42, 50, 24, stone), 26, 0, 28);                     // 头
-  add(E(14, 36, 12, stoneDark), S.mouthDist / (k * S.frogScale) - 14, 0, 20);   // 嘴（含球处阴影）
-  const eyes = new THREE.Group(); eyes.name = 'eyes'; G.add(eyes);
+  add(E(44, 42, 25, back), -28, 0, 20);                                   // 身体（背甲雕纹）
+  add(E(34, 50, 24, stone), 18, 0, 22);                                   // 宽扁大头
+  // 嘴：深色口腔 + 半包住球的嘴唇（球心 = mouthX）
+  add(E(18, 34, 10, crevice), mouthX - 16, 0, 16);
+  { const lip = new THREE.Mesh(new THREE.TorusGeometry(27 * k, 7.5 * k, 14, 40, Math.PI * 0.75), stone); lip.position.set((mouthX - 2) * k, 0, 38 * k); lip.rotation.z = Math.PI / 2 + Math.PI * 0.125; lip.scale.set(0.8, 1.15, 0.7); lip.name = 'frog_lip'; G.add(lip); }
+  // 眼：头顶两只白色大眼（眼眶 + 白眼 + 绿虹膜 + 黑瞳），眼睑（眨眼时显示）
+  const eyes = new THREE.Group(); eyes.name = 'eyes'; G.add(eyes); const lids = new THREE.Group(); lids.name = 'lids'; lids.visible = false; G.add(lids);
   for (const s of [-1, 1]) {
     if (S.eyeStyle === 'gem') {
-      add(new THREE.Mesh(new THREE.TorusGeometry(12 * k, 3.5 * k, 12, 32), gold), 36, s * 32, 46, 0, eyes);
-      add(new THREE.Mesh(new THREE.SphereGeometry(11 * k, 24, 16), new THREE.MeshPhysicalMaterial({ color: new THREE.Color(S.eyeGlow), emissive: new THREE.Color(S.eyeGlow), emissiveIntensity: 0.9, roughness: 0.1, clearcoat: 1, name: 'pbr_frog_gem_eye' })), 36, s * 32, 48, 0, eyes);
+      add(new THREE.Mesh(new THREE.TorusGeometry(12 * k, 3.5 * k, 12, 32), gold), 18, s * 30, 44, 0, eyes);
+      add(new THREE.Mesh(new THREE.SphereGeometry(11 * k, 24, 16), new THREE.MeshPhysicalMaterial({ color: new THREE.Color(S.eyeGlow), emissive: new THREE.Color(S.eyeGlow), emissiveIntensity: 0.9, roughness: 0.1, clearcoat: 1, name: 'pbr_frog_gem_eye' })), 18, s * 30, 46, 0, eyes);
     } else {
-      add(E(20, 19, 17, stone), 36, s * 36, 40, 0, eyes);     // 眼眶
-      add(E(18, 17, 16, white), 40, s * 36, 47, 0, eyes);     // 白色大眼
-      add(E(8.5, 8.5, 6, black), 52, s * 34, 55, 0, eyes);    // 黑瞳（看向前方）
+      add(E(16, 16, 14, stone), 2, s * 27, 38, 0, eyes);                  // 眼眶
+      add(E(14, 14, 13, white), 5, s * 27, 44, 0, eyes);                  // 白色大眼
+      add(E(7.5, 7.5, 4, iris), 13, s * 28, 51, 0, eyes);                      // 绿虹膜（看向前方）
+      add(E(4.2, 4.2, 3, black), 15.5, s * 28, 53.5, 0, eyes);                   // 黑瞳
+      add(E(15.5, 15.5, 14, stone), 5, s * 27, 45, 0, lids);              // 眼睑（眨眼）
     }
   }
-  // 头顶大宝石（金托 + 宝石：显示下一颗球颜色 / 固定色）
-  add(new THREE.Mesh(new THREE.TorusGeometry(19 * k, 5 * k, 14, 40), gold), -4, 0, 50);
-  add(new THREE.Mesh(new THREE.CylinderGeometry(20 * k, 22 * k, 6 * k, 40), gold), -4, 0, 46).rotation.x = Math.PI / 2;
+  // 背部小圆宝石（深金托 + 宝石：显示下一颗球颜色 / 固定色）
+  add(new THREE.Mesh(new THREE.TorusGeometry(12 * k, 3.4 * k, 14, 40), gold), -26, 0, 44);
   const gemMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(S.gemColor), roughness: 0.08, clearcoat: 1, emissive: new THREE.Color(S.gemColor), emissiveIntensity: 0.35, name: 'pbr_frog_gem' });
-  const gem = add(new THREE.Mesh(new THREE.SphereGeometry(17 * k, 32, 24), gemMat), -4, 0, 52); gem.scale.z = 0.75; gem.name = 'frog_gem';
-  G.userData.gem = gemMat;
+  const gem = add(new THREE.Mesh(new THREE.SphereGeometry(11.5 * k, 32, 24), gemMat), -26, 0, 45); gem.scale.z = 0.7; gem.name = 'frog_gem';
+  G.userData.gem = gemMat; G.userData.eyes = eyes; G.userData.lids = lids;
   G.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   G.scale.setScalar(S.frogScale);
   return G;
@@ -112,7 +121,7 @@ export function create3D(W, H, opts = {}) {
       m.position.set(px, py, (b.z ?? R.D / 2) * (b.scale ?? 1)); m.scale.setScalar(Math.max(1e-3, b.scale ?? 1)); m.visible = true; used.add(b.id);
     }
     for (const [id, m] of R.pool) if (!used.has(id)) { m.visible = false; if (R.pool.size > 220) { m.removeFromParent(); R.pool.delete(id); R.lastS.delete(id); } }
-    if (frog) { R.frog.rotation.z = -frog.ang; if (frog.gem != null) R.frog.userData.gem.color.set(frog.gem), R.frog.userData.gem.emissive.set(frog.gem); }
+    if (frog) { R.frog.rotation.z = -frog.ang; if (R.frog.userData.lids) { R.frog.userData.lids.visible = !!frog.blink; R.frog.userData.eyes.visible = !frog.blink || S.eyeStyle === 'gem'; } if (frog.gem != null) R.frog.userData.gem.color.set(frog.gem), R.frog.userData.gem.emissive.set(frog.gem); }
     renderer.render(R.scene, R.camera);
     return renderer.domElement;
   };
