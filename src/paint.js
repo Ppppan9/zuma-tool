@@ -112,15 +112,16 @@ const GLYPHS = [
 export const BALL_STYLES = ['swirl', 'mask', 'glyph', 'crackle', 'swirl', 'mask'];
 export function ballTextures(hex, seed, S, style = 'swirl') {
   const W = 512, H = 256, map = mk(W, H), bump = mk(W, H), g = map.getContext('2d'), b = bump.getContext('2d'), r = mulberry(seed);
-  g.fillStyle = hex; g.fillRect(0, 0, W, H);
+  const darkLines = style !== 'swirl'; // 参考：红球浅色花纹；绿 / 黄 / 蓝为浅底深色刻纹
+  g.fillStyle = darkLines ? mix(hex, '#ffffff', style === 'crackle' ? 0.42 : 0.16) : hex; g.fillRect(0, 0, W, H);
   const n = noiseCanvas(W / 2, H / 2, seed + 5, 4, 4); g.globalAlpha = 0.18; g.globalCompositeOperation = 'overlay'; g.drawImage(n, 0, 0, W, H); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
   b.fillStyle = '#fff'; b.fillRect(0, 0, W, H);
-  const L = S.runeLight, light = style === 'glyph' ? mix(hex, '#3a2a00', 0.42 * (0.4 + L)) : mix(hex, '#ffffff', 0.25 + L * 0.5), dark = mix(hex, '#000000', 0.4);
+  const L = S.runeLight, light = darkLines ? mix(hex, style === 'crackle' ? '#06143a' : style === 'glyph' ? '#3a2a00' : '#0c2a08', 0.5 + L * 0.3) : mix(hex, '#ffffff', 0.25 + L * 0.5), dark = mix(hex, '#000000', 0.4);
   if (style === 'crackle') { // Voronoi 网纹（等距柱状横向循环）
     const pts = []; for (let i = 0; i < 46; i++) pts.push([r() * W, r() * H]); const all = []; for (const p of pts) for (const o of [-W, 0, W]) all.push([p[0] + o, p[1]]);
     const id = g.getImageData(0, 0, W, H), bd = b.getImageData(0, 0, W, H), [lr, lg, lb] = hexRGB(light.startsWith('#') ? light : '#ffffff');
     const LC = light.match(/\d+/g).map(Number);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let d1 = 1e9, d2 = 1e9; for (const p of all) { const d = (p[0] - x) ** 2 + ((p[1] - y) * 2) ** 2; if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; } const e = Math.sqrt(d2) - Math.sqrt(d1); if (e < 9) { const a = e < 5 ? 1 : (9 - e) / 4, q = (y * W + x) * 4; for (let k = 0; k < 3; k++) id.data[q + k] = id.data[q + k] * (1 - a) + LC[k] * a; bd.data[q] = bd.data[q + 1] = bd.data[q + 2] = 255 * (1 - a * 0.9); } }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let d1 = 1e9, d2 = 1e9; for (const p of all) { const d = (p[0] - x) ** 2 + ((p[1] - y) * 2) ** 2; if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; } const e = Math.sqrt(d2) - Math.sqrt(d1); if (e < 6) { const a = e < 3.2 ? 1 : (6 - e) / 2.8, q = (y * W + x) * 4; for (let k = 0; k < 3; k++) id.data[q + k] = id.data[q + k] * (1 - a) + LC[k] * a; bd.data[q] = bd.data[q + 1] = bd.data[q + 2] = 255 * (1 - a * 0.9); } }
     g.putImageData(id, 0, 0); b.putImageData(bd, 0, 0);
   } else {
     const cells = []; for (let row = 0; row < 2; row++) for (let col = 0; col < 5; col++) cells.push([col * 102.4 + (row ? 51 : 0) + (r() - 0.5) * 16, 72 + row * 112 + (r() - 0.5) * 12]);
@@ -131,7 +132,7 @@ export function ballTextures(hex, seed, S, style = 'swirl') {
         ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot[i]); const sc = style === 'mask' ? 1.55 : 1.45; ctx.scale(sc, sc * 0.95);
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         const lw = style === 'glyph' ? 8 : 9; ctx.lineWidth = mode === 'dark' ? lw + 5 : lw; ctx.strokeStyle = ctx.fillStyle = mode === 'dark' ? dark : mode === 'light' ? light : '#000';
-        if (mode === 'dark') { ctx.globalAlpha = style === 'glyph' ? 0.12 : 0.3; ctx.translate(1.5, 2); }
+        if (mode === 'dark') { ctx.globalAlpha = darkLines ? 0.12 : 0.3; ctx.translate(1.5, 2); }
         GLYPHS[pick[i]](ctx, r); if (style === 'mask') GLYPHS[(pick[i] + 3) % GLYPHS.length](ctx, r);
         ctx.restore();
       });

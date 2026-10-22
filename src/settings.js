@@ -47,7 +47,7 @@ export const GROUPS = [
     ['runeLight', '符文亮度(浅色雕刻)', 'range', 0.5, 0, 1, 0.01],
     ['runeBump', '符文雕刻深度', 'range', 1.2, 0, 4, 0.05],
     ['ballRough', '球表面粗糙度(越小越亮)', 'range', 0.38, 0, 1, 0.01],
-    ['ballEnv', '环境反射强度', 'range', 0.45, 0, 2, 0.05],
+    ['ballEnv', '环境反射强度', 'range', 0.65, 0, 2, 0.05],
     ['ballRoll', '球沿轨道滚动旋转', 'bool', true],
   ]],
   ['发射器（石青蛙）', [
@@ -229,7 +229,7 @@ export function migrate(obj) {
     if (s.h5Format === 'tiktok,google,mintegral,generic') s.h5Format = ALL8;
     v = 1;
   }
-  const OLD = { /* 版本 → 旧默认（仍等于旧默认才替换为新默认） */ 2: { hitRadius: 0.92, fxSplat: 7, fxShards: 16, fxFlash: 0.75, fxLife: 0.75, failSize: 0.46, discText: '广告素材宣传 场景表现非一定关卡 触发相应模块出现', frogStone: '#7f6f5c', seed: 7 } };
+  const OLD = { /* 版本 → 旧默认（仍等于旧默认才替换为新默认） */ 2: { hitRadius: 0.92, fxSplat: 7, fxShards: 16, fxFlash: 0.75, fxLife: 0.75, failSize: 0.46, discText: '广告素材宣传 场景表现非一定关卡 触发相应模块出现', frogStone: '#7f6f5c', seed: 7, ballEnv: 0.45 } };
   for (const nv of Object.keys(OLD).map(Number).sort((a, b) => a - b)) if (v < nv) { for (const k in OLD[nv]) if (s[k] === OLD[nv][k]) delete s[k]; v = nv; }
   const out = { ...DEFS };
   for (const k in DEFS) if (k in s && typeof s[k] === typeof DEFS[k]) out[k] = s[k];
