@@ -41,7 +41,7 @@ export function buildSprites({ S, T, view, K, bgCanvas, handImg, colorOf, endDra
   // ---- 特效（单位尺寸素材：w=h=1，图层缩放 = 页面绘制尺寸） ----
   const blob = (key, fn, n = 128) => { const c = mk(n, n), g = c.getContext('2d'); fn(g, n); out[key] = { c, w: 1, h: 1, ax: 0.5, ay: 0.5 }; };
   blob('fx_sliver', (g, n) => { g.strokeStyle = '#fff'; g.lineWidth = n * 0.11; g.lineCap = 'round'; g.beginPath(); g.arc(n / 2, n * 0.95, n * 0.45, -Math.PI / 2 - 0.6, -Math.PI / 2 + 0.6); g.stroke(); }, 64);
-  for (let c = 0; c < nC; c++) { const [r, gg, b] = hexRGB(colorHex(S, c)), pale = a => `rgba(${Math.min(255, r * 0.55 + 125) | 0},${Math.min(255, gg * 0.55 + 130) | 0},${Math.min(255, b * 0.55 + 135) | 0},${a})`, dk = f => `rgb(${r * f | 0},${gg * f | 0},${Math.min(255, b * f + 18) | 0})`;
+  for (let c = 0; c < nC; c++) { const [r, gg, b] = hexRGB(colorHex(S, c)), [tr, tg, tb] = hexRGB(S['fxTint_' + c] || colorHex(S, c)), pale = a => `rgba(${tr},${tg},${tb},${a})`, dk = f => `rgb(${r * f | 0},${gg * f | 0},${Math.min(255, b * f + 18) | 0})`;
     // 与 src/fx.js 同一画法：sc（设计 px）= 素材 1 单位
     blob('fx_glow_' + c, (g, n) => { const gr = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); gr.addColorStop(0, pale(1)); gr.addColorStop(0.62, pale(0.8)); gr.addColorStop(1, pale(0)); g.fillStyle = gr; g.fillRect(0, 0, n, n); });
     blob('fx_ghost_' + c, (g, n) => { const R = n * 0.47; g.fillStyle = pale(0.5); g.beginPath(); g.arc(n / 2, n / 2, R, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,0.18)'; g.beginPath(); g.ellipse(n / 2 - R * 0.3, n / 2 - R * 0.35, R * 0.35, R * 0.2, -0.5, 0, 7); g.fill(); g.setLineDash([R * 0.16, R * 0.1]); g.lineWidth = R * 0.075; g.strokeStyle = dk(0.22); g.globalAlpha = 0.9; g.beginPath(); g.arc(n / 2, n / 2, R, 0, 7); g.stroke(); });
