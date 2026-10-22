@@ -24,6 +24,21 @@ if (which.includes('combo')) { // 自动通关（带手指），在第一次 ≥
     window.__nodraw = false; __game.renderAt(t); return { ok: false, log: window.__matchLog }; });
   console.log('combo capture', JSON.stringify(r)); await shot('combo_fx'); compare('combo_fx', REF + 'f_021.jpg');
 }
+if (which.includes('insert')) { // 插入动画特写：命中后 0/33/66/100/133ms 五帧拼图（目视检查不穿模）
+  const shots5 = await p.evaluate(async () => { window.__nodraw = true; let t = 600000; __game.setMany({ seed: 3 }); __game.renderAt(t); __game.newGame(); let cd = 0, out = [];
+    for (let i = 0; i < 30 * 30 && !out.length; i++) { const Z = __game.Z; if (cd <= 0 && Z.canShoot()) { const p = Z.plan(); if (p && !p.discard) { Z.aim(p.x, p.y); Z.shoot(p.x, p.y); } cd = 18; } cd--;
+      for (let q = 0; q < 8; q++) { t += 4; __game.renderAt(t); const nb = Z.balls.find(b => b.g < 1 && b.g > 0); if (nb && i > 60) { window.__nodraw = false; const id = nb.id; for (let k = 0; k < 5; k++) { __game.renderAt(t); const b = Z.balls.find(x => x.id === id) || nb, pp = Z.pos(b); out.push({ x: pp.x, y: pp.y, url: document.getElementById('stage').toDataURL('image/png') }); t += 33.3; } break; } } if (!out.length) { t += 1; } }
+    window.__nodraw = false; return out; });
+  shots5.forEach((o, k) => fs.writeFileSync(`/tmp/ins_${k}.png`, Buffer.from(o.url.split(',')[1], 'base64')));
+  if (shots5.length) execFileSync('python3', ['-c', `
+from PIL import Image
+x,y=${Math.round(shots5[0].x)},${Math.round(shots5[0].y)}
+W=Image.new('RGB',(5*300,300))
+for k in range(5):
+  a=Image.open('/tmp/ins_%d.png'%k).convert('RGB'); s=a.size[0]/720; c=a.crop((int((x-150)*s),int((y-150)*s),int((x+150)*s),int((y+150)*s))).resize((300,300)); W.paste(c,(k*300,0))
+W.save('screenshots/insert_sequence.png')`]);
+  console.log('insert frames', shots5.length, 'saved screenshots/insert_sequence.png');
+}
 if (which.includes('fail')) { // 演示失败：随机乱打 + 推进加速，等 FAIL 徽章放大完成
   const r = await p.evaluate(async () => { const S = __game.S, keep = { autoAim: S.autoAim, chainSpeed: S.chainSpeed, theme: S.theme };
     let t = 400000; __game.renderAt(t); __game.setMany({ chainSpeed: 8, introSec: 0, theme: 'grey' }); __game.newGame(); let shownAt = 0, i = 0; window.__nodraw = true;
