@@ -60,6 +60,7 @@ function step(t) {
   let dt = Math.min(0.1, (t - lastT) / 1000); lastT = t; if (dt <= 0) return;
   const sec = (t - t0Game) / 1000;
   if (S.themeSwitchSec > 0 && sec >= S.themeSwitchSec && themeNow !== 'grey') { themeNow = 'grey'; if (R3) R3.setBg(bgCanvas.grey); }
+  if (failShowAt && S.failFreeze && t >= failShowAt) dt = 0;
   while (dt > 0) { const h = Math.min(dt, 1 / 120); Z.update(h); dt -= h; }
   for (const e of Z.events) {
     if (e.type === 'shoot') { sfx.play('shoot', S); mouthT = t; }
@@ -73,7 +74,7 @@ function step(t) {
     else if (e.type === 'win') { winAt = t; sfx.play('win', S); window.__finished = true; status('通关！'); onFinish(); }
   }
   Z.events.length = 0;
-  if (failAt && !failShowAt && (Z.balls.length === 0 || t - failAt > 2500)) { failShowAt = t + S.failDelay * 1000; setTimeout(() => sfx.play('fail', S), S.failDelay * 1000); onFinish(); }
+  if (failAt && !failShowAt && (Z.balls.length === 0 || t - failAt > S.failBadgeAfter * 1000)) { failShowAt = t + S.failDelay * 1000; setTimeout(() => sfx.play('fail', S), S.failDelay * 1000); onFinish(); }
   dying = dying.filter(d => t - d.t0 < S.popDur * 1000);
   // 滚动声：链在动且未结束
   if (sfx.ctx) sfx.roll(S, Z.state === 'play' && Z.balls.length ? 1 : Z.state === 'fail' && Z.balls.length ? 1.4 : 0);

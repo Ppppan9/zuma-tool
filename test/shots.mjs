@@ -19,16 +19,15 @@ if (which.includes('open')) {
   await shot('open_1s'); compare('open_1s', REF + 'f_005.jpg');
 }
 if (which.includes('combo')) { // 自动通关（带手指），在第一次 ≥2 连击发生后 ~120ms 截图
-  const r = await p.evaluate(async () => { window.__lastMatch = null; window.__matchLog = []; window.__nodraw = true; let t = 200000; for (const seed of [7, 3, 11, 21, 42, 5]) { __game.setMany({ seed }); __game.renderAt(t); __game.newGame(); __game.autoSolve(); window.__lastMatch = null;
-    for (let i = 0; i < 30 * 40; i++) { t += 33.3; __game.renderAt(t); await new Promise(r => setTimeout(r, 0)); const m = window.__lastMatch; if (m && m.combo >= 2 && t - m.t >= 0) { window.__nodraw = false; for (let k = 0; k < 4; k++) { t += 33.3; __game.renderAt(t); } return { ok: true, t, combo: m.combo, n: m.n, log: window.__matchLog.slice(-6) }; } if (window.__failed || window.__finished) break; } }
+  const r = await p.evaluate(async () => { window.__lastMatch = null; window.__matchLog = []; window.__nodraw = true; let t = 200000; for (const seed of [7, 3, 11, 21, 42, 5]) { __game.setMany({ seed }); __game.renderAt(t); __game.newGame(); window.__lastMatch = null; let cd = 0;
+    for (let i = 0; i < 30 * 60; i++) { const Z = __game.Z; if (cd <= 0 && Z.canShoot()) { const p = Z.plan(); if (p) { Z.aim(p.x, p.y); Z.shoot(p.x, p.y); } cd = 18; } cd--; t += 33.3; __game.renderAt(t); const m = window.__lastMatch; if (m && m.combo >= 2 && t - m.t >= 0) { window.__nodraw = false; for (let k = 0; k < 4; k++) { t += 33.3; __game.renderAt(t); } return { ok: true, t, combo: m.combo, n: m.n, log: window.__matchLog.slice(-6) }; } if (window.__failed || window.__finished) break; } }
     window.__nodraw = false; __game.renderAt(t); return { ok: false, log: window.__matchLog }; });
   console.log('combo capture', JSON.stringify(r)); await shot('combo_fx'); compare('combo_fx', REF + 'f_021.jpg');
-  await p.evaluate(() => __game.autoSolve());
 }
 if (which.includes('fail')) { // 演示失败：随机乱打 + 推进加速，等 FAIL 徽章放大完成
   const r = await p.evaluate(async () => { const S = __game.S, keep = { autoAim: S.autoAim, chainSpeed: S.chainSpeed, theme: S.theme };
-    let t = 400000; __game.renderAt(t); __game.setMany({ chainSpeed: 8, introSec: 0, theme: 'grey' }); __game.newGame(); let shownAt = 0; window.__nodraw = true;
-    for (let i = 0; i < 30 * 40; i++) { t += 33.3; __game.renderAt(t); if (window.__failed && !shownAt && __game.Z.balls.length === 0) shownAt = t; if (shownAt && t - shownAt > 900) window.__nodraw = false; if (shownAt && t - shownAt > 1100) break; }
+    let t = 400000; __game.renderAt(t); __game.setMany({ chainSpeed: 8, introSec: 0, theme: 'grey' }); __game.newGame(); let shownAt = 0, i = 0; window.__nodraw = true;
+    for (i = 0; i < 30 * 40; i++) { t += 33.3; __game.renderAt(t); if (window.__failed && !shownAt) shownAt = t + 850; if (shownAt && t - shownAt > 900) window.__nodraw = false; if (shownAt && t - shownAt > 1100) break; }
     window.__nodraw = false; __game.renderAt(t);
     Object.assign(S, keep); return { failed: window.__failed, shownAt, frames: i }; });
   console.log('fail capture', JSON.stringify(r)); await shot('fail'); compare('fail', REF + 'f_094.jpg');
