@@ -18,11 +18,12 @@ export class Zuma {
   constructor(S, track, opts = {}) {
     this.S = S; this.T = track; this.D = S.ballSize; this.rnd = mulberry(opts.seed ?? S.seed);
     this.nColors = Math.max(1, Math.min(S.colorCount, 6));
-    this.balls = []; this.shots = []; this.events = []; this.id = 0; this.state = 'play'; this.time = 0; this.cool = 0;
+    this.balls = []; this.dying = []; this.shots = []; this.events = []; this.id = 0; this.state = 'play'; this.time = 0; this.cool = 0;
     this.combo = 0; this.maxCombo = 0; this.removed = 0; this.shotsFired = 0; this.matches = 0; this.failT = 0;
     const cols = opts.colors || makeChainColors(S.chainLen, this.nColors, this.rnd, S.chainSameProb, 2);
     const head = S.startFill * track.len;
     for (let i = cols.length - 1, k = 0; i >= 0; i--, k++) this.balls.unshift(this.mk(cols[i], head - k * this.D));
+    for (let i = 1; i < this.balls.length; i++) { const m = this.minNext(i); if (this.balls[i].s < m) this.balls[i].s = m; }
     this.frog = { x: track.cx + S.frogOffX, y: track.cy + S.frogOffY, ang: -Math.PI / 2 + S.frogStartDeg * Math.PI / 180 };
     this.cur = this.pickColor(); this.next = this.pickColor();
   }
@@ -39,9 +40,38 @@ export class Zuma {
   }
   goodColors() { const good = []; for (let c = 0; c < this.nColors; c++) { const p = this.plan(c, true); if (p && p.score >= 100) good.push(c); } return good; }
   need(a, b) { return this.D * (a.g + b.g) / 2; }
-  touching(i) { const B = this.balls; return i > 0 && B[i].s - B[i - 1].s <= this.need(B[i - 1], B[i]) + 0.5; } // i 与 i-1 相接
+  // 弯道上弦长 < 弧长：返回使两球“直线距离”≥ nd 的最小弧长位置（从 s0 向前）
+  chordS(s0, nd) { const T = this.T, p0 = T.at(s0); let s = s0 + nd; for (let k = 0; k < 8; k++) { const p = T.at(s), d = Math.hypot(p.x - p0.x, p.y - p0.y); if (d >= nd - 0.02 || s >= T.len) break; s += (nd - d) * 1.05 + 0.02; } return s; }
+  chordSBack(s0, nd) { const T = this.T, p0 = T.at(s0); let s = s0 - nd; for (let k = 0; k < 8; k++) { const p = T.at(s), d = Math.hypot(p.x - p0.x, p.y - p0.y); if (d >= nd - 0.02) break; s -= (nd - d) * 1.05 + 0.02; } return s; }
+  minNext(i) { const B = this.balls; return this.chordS(B[i - 1].s, this.need(B[i - 1], B[i])); }
+  touching(i) { const B = this.balls; return i > 0 && B[i].s <= this.minNext(i) + 0.5; } // i 与 i-1 相接
   segments() { const B = this.balls, segs = []; let a = 0; for (let i = 1; i <= B.length; i++) if (i === B.length || !this.touching(i)) { segs.push([a, i - 1]); a = i; } return segs; }
-  pos(b) { const p = this.T.at(b.s); if (b.fly > 0) { const u = b.fly * b.fly; return { x: p.x + (b.fx - p.x) * u, y: p.y + (b.fy - p.y) * u, a: p.a }; } return p; }
+  pos(b) {
+    const p = this.T.at(b.s); if (!(b.g < 1) && !(b.fly > 0)) return p;
+    const u = b.fly * b.fly; let x = p.x + (b.fx - p.x) * u, y = p.y + (b.fy - p.y) * u;
+    // 插入中的球：缺口还没完全张开时被相邻球“挤”在轨道旁（参考视频：新球先浮在链外侧，随缺口张开滑入），任何时刻不与相邻球重叠
+    const B = this.balls, k = B.indexOf(b), D = this.D;
+    if (k >= 0) { const nb = []; for (let j = k - 2; j <= k + 2; j++) if (j !== k && j >= 0 && j < B.length && B[j].g >= 1) { const q = this.T.at(B[j].s); q.r = D; nb.push(q); }
+      for (const d of this.dying) if (Math.hypot(d.x - x, d.y - y) < D * 2) nb.push({ x: d.x, y: d.y, r: D / 2 * (1 + Math.max(0.01, 1 - d.t / this.S.popDur)) * 1.01 });
+      const f = this.frog; for (let it = 0; it < 30; it++) { let moved = false; for (const n of nb) { let dx = x - n.x, dy = y - n.y, d = Math.hypot(dx, dy); if (d >= n.r) continue; if (d < 1e-3) { dx = f.x - n.x; dy = f.y - n.y; d = Math.hypot(dx, dy) || 1; } x = n.x + dx / d * n.r * 1.0005; y = n.y + dy / d * n.r * 1.0005; moved = true; } if (!moved) break; }
+      const bad = () => nb.filter(n => Math.hypot(x - n.x, y - n.y) < n.r * 0.999);
+      if (bad().length) { // 交替投影没收敛（急弯处夹在两球之间）：取两相邻球外接圆交点里离目标最近且不冲突的点
+        const x0 = x, y0 = y; let best = null;
+        for (let i = 0; i < nb.length; i++) for (let j = i + 1; j < nb.length; j++) { const A = nb[i], C = nb[j], dx = C.x - A.x, dy = C.y - A.y, dd = Math.hypot(dx, dy); if (dd < 1e-6 || dd > A.r + C.r) continue;
+          const l = (A.r * A.r - C.r * C.r + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, A.r * A.r - l * l)) * 1.001 + 0.01, mx = A.x + dx * l / dd, my = A.y + dy * l / dd;
+          for (const sg of [-1, 1]) { const qx = mx - dy / dd * h * sg, qy = my + dx / dd * h * sg; if (nb.some(n => Math.hypot(qx - n.x, qy - n.y) < n.r * 0.999)) continue; const c = Math.hypot(qx - x0, qy - y0); if (!best || c < best.c) best = { x: qx, y: qy, c }; } }
+        if (best) { x = best.x; y = best.y; } }
+    }
+    return { x, y, a: p.a };
+  }
+  // 渲染列表（链上球 + 飞行球 + 消除中缩小的球），所有可见元素用同一套位置；scale = 半径倍率
+  renderList() {
+    const D = this.D, L = this.T.len, out = [];
+    for (const b of this.balls) { const p = this.pos(b); let sc = 1; const left = L - b.s; if (left < D * 0.9) sc = Math.max(0, Math.min(1, left / (D * 0.9))) * 0.6 + 0.4 * (left > 0); if (this.state === 'fail' && left < D) sc = Math.max(0, Math.min(1, left / D)); out.push({ id: b.id, c: b.c, x: p.x, y: p.y, scale: sc, s: b.s }); }
+    for (const s of this.shots) out.push({ id: s.id, c: s.c, x: s.x, y: s.y, scale: 1, shot: true });
+    for (const d of this.dying) { const u = d.t / this.S.popDur; out.push({ id: d.id, c: d.c, x: d.x, y: d.y, scale: Math.max(0.01, 1 - u), dying: u }); }
+    return out;
+  }
   muzzle() { const f = this.frog, r = this.S.mouthDist; return { x: f.x + Math.cos(f.ang) * r, y: f.y + Math.sin(f.ang) * r }; }
   aim(tx, ty) { this.frog.ang = Math.atan2(ty - this.frog.y, tx - this.frog.x); }
   canShoot() { return this.state === "play" && this.cool <= 0 && !this.pendingPromote; }
@@ -77,6 +107,8 @@ export class Zuma {
     const gone = this.balls.splice(a, b - a + 1);
     const level = comboLevel; this.combo = level; this.maxCombo = Math.max(this.maxCombo, level); this.removed += gone.length; this.matches++;
     this.events.push({ type: 'match', combo: level, balls: gone.map(g => { const p = this.pos(g); return { x: p.x, y: p.y, c: g.c, id: g.id }; }) });
+    for (const g of gone) { const p = this.pos(g); this.dying.push({ id: g.id, c: g.c, x: p.x, y: p.y, t: 0, s: g.s }); }
+    if (a < this.balls.length) this.balls[a].hold = this.S.pullDelay ?? 0.15;
     if (a < this.balls.length && a > 0) this.balls[a].tag = level; // 缺口前段首球：记住连击层级（回拉相接后 +1）
     return true;
   }
@@ -86,10 +118,13 @@ export class Zuma {
     if (this.state === 'fail') {
       this.failT += dt; const v = S.suckSpeed * D * (1 + this.failT * 3);
       for (const b of B) { b.s += v * dt; b.roll += v * dt / (D / 2); }
+      for (let i = 1; i < B.length; i++) { const m = this.minNext(i); if (B[i].s < m) B[i].s = m; }
+      this.stepDying(dt); this.pushDying();
       while (B.length && B[B.length - 1].s >= this.T.len) { const g = B.pop(); this.events.push({ type: 'sucked', c: g.c }); }
       this.stepShots(dt, false); return;
     }
-    if (this.state === 'win') { this.stepShots(dt, false); return; }
+    if (this.state === 'win') { this.stepShots(dt, false); this.stepDying(dt); return; }
+    this.stepDying(dt);
     // 插入生长
     const done = [];
     for (const b of B) { if (b.g < 1) { b.g = Math.min(1, b.g + dt / S.insertDur); b.fly = Math.max(0, 1 - b.g); if (b.g >= 1) done.push(b); } }
@@ -102,12 +137,18 @@ export class Zuma {
     segs.forEach(([a, b], j) => {
       let dv = 0;
       if (j === 0) dv = speed * dt;
-      else { const prev = B[a - 1]; if (prev && prev.c === B[a].c && prev.g >= 1 && B[a].g >= 1) { dv = -S.pullSpeed * S.chainSpeed * D * dt; pulling.add(a); } }
-      if (dv) for (let i = a; i <= b; i++) B[i].s += dv;
+      else { const prev = B[a - 1]; if (B[a].hold > 0) B[a].hold -= dt; else if (prev && prev.c === B[a].c && prev.g >= 1 && B[a].g >= 1) { dv = -S.pullSpeed * S.chainSpeed * D * dt; pulling.add(a); } }
+      if (dv) {
+        // 消除中的球（正在缩小）仍占位：段的首/尾不能挤进它们
+        if (dv > 0) for (const d of this.dying) if (d.s > B[b].s) { const lim = d.s - this.D / 2 * (2 - d.t / S.popDur) * 1.01 - B[b].s; if (lim < dv) dv = Math.max(0, lim); }
+        if (dv < 0) for (const d of this.dying) if (d.s < B[a].s) { const lim = d.s + this.D / 2 * (2 - d.t / S.popDur) * 1.01 - B[a].s; if (lim > dv) dv = Math.min(0, lim); }
+        for (let i = a; i <= b; i++) B[i].s += dv;
+      }
     });
     const pullHeads = [...pulling].map(i => B[i]);
-    for (let i = 1; i < B.length; i++) { const nd = this.need(B[i - 1], B[i]); if (B[i].s < B[i - 1].s + nd) B[i].s = B[i - 1].s + nd; }
+    for (let i = 1; i < B.length; i++) { const m = this.minNext(i); if (B[i].s < m) B[i].s = m; }
     const joins = pullHeads.filter(b => { const i = B.indexOf(b); return i > 0 && this.touching(i); });
+    this.pushDying();
     for (let i = 0; i < B.length; i++) B[i].roll += (B[i].s - old[i]) / (D / 2);
     // 相接 → 连击判定
     for (const b of joins) { const i = B.indexOf(b); if (i < 0) continue; const lvl = (b.tag || 0) + 1; b.tag = 0; this.events.push({ type: 'join', c: b.c }); this.tryMatch(i, lvl); }
@@ -121,6 +162,16 @@ export class Zuma {
     if (B.length && B[B.length - 1].s >= this.T.len - D * 0.5) { this.state = 'fail'; this.failT = 0; this.events.push({ type: 'fail' }); }
     else if (!B.length) { this.state = 'win'; this.events.push({ type: 'win' }); }
   }
+  pushDying() { // 消除中的球被相邻链球推开（沿轨道），保证不与链球重叠
+    const B = this.balls, D = this.D;
+    for (const d of this.dying) { const sc = Math.max(0.01, 1 - d.t / this.S.popDur), need = D / 2 * (1 + sc) * 1.012; let moved = false;
+      for (const b of B) { if (Math.abs(b.s - d.s) >= need * 1.6) continue; const pb = this.T.at(b.s); if (Math.hypot(pb.x - d.x, pb.y - d.y) >= need) continue; d.s = b.s <= d.s ? this.chordS(b.s, need) : this.chordSBack(b.s, need); const q = this.T.at(d.s); d.x = q.x; d.y = q.y; moved = true; }
+      if (moved) { const p = this.T.at(d.s); d.x = p.x; d.y = p.y; } }
+    // 消除中的球之间也不重叠：按弧长排序，挤开时沿轨道两侧对称分开
+    const L = this.dying.slice().sort((p, q) => p.s - q.s), scl = d => Math.max(0.01, 1 - d.t / this.S.popDur);
+    for (let it = 0; it < 3; it++) for (let i = 1; i < L.length; i++) { const a = L[i - 1], b = L[i], need = D / 2 * (scl(a) + scl(b)) * 1.012, dd = Math.hypot(b.x - a.x, b.y - a.y); if (dd < need) { b.s = this.chordS(a.s, need); const p = this.T.at(b.s); b.x = p.x; b.y = p.y; } }
+  }
+  stepDying(dt) { for (const d of this.dying) d.t += dt; this.dying = this.dying.filter(d => d.t < this.S.popDur); }
   stepShots(dt, collide) {
     const D = this.D, r = D * this.S.hitRadius;
     for (let k = this.shots.length - 1; k >= 0; k--) {
@@ -129,7 +180,7 @@ export class Zuma {
       for (let q = 0; q < n && !hit; q++) {
         s.x += s.vx * dt / n; s.y += s.vy * dt / n; s.roll += dist / n / (D / 2);
         if (!collide) continue;
-        for (let i = 0; i < this.balls.length; i++) { const b = this.balls[i]; if (b.s < this.T.visS || b.g < 1) continue; const p = this.pos(b); if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < r * r) { this.insert(i, this.sideOf(i, s.x, s.y), s.c, s.x, s.y, s.id); hit = true; break; } }
+        for (let i = 0; i < this.balls.length; i++) { const b = this.balls[i]; if (b.s < this.T.visS) continue; const p = this.pos(b); if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 < r * r) { this.insert(i, this.sideOf(i, s.x, s.y), s.c, s.x, s.y, s.id); hit = true; break; } }
       }
       if (hit || s.x < -D * 2 || s.x > 720 + D * 2 || s.y < -D * 2 || s.y > 1280 + D * 2) this.shots.splice(k, 1);
     }

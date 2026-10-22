@@ -67,7 +67,6 @@ function step(t) {
     else if (e.type === 'insert') sfx.play('insert', S);
     else if (e.type === 'match') {
       sfx.play('match', S, { combo: e.combo }); spawnMatchFx(fx, e, S, t / 1000, colorOf, fxSeed++);
-      for (const b of e.balls) dying.push({ id: b.id, c: b.c, x: b.x, y: b.y, t0: t });
       window.__lastMatch = { combo: e.combo, t, n: e.balls.length }; window.__matchLog = (window.__matchLog || []).concat([[Math.round(t), e.combo, e.balls.length]]);
       window.__maxCombo = Math.max(window.__maxCombo || 0, e.combo); if (e.combo >= 2) status(`连击 ×${e.combo}！`);
     } else if (e.type === 'fail') { failAt = t; sfx.play('suck', S); window.__failed = true; status('失败：球链进洞'); }
@@ -75,17 +74,13 @@ function step(t) {
   }
   Z.events.length = 0;
   if (failAt && !failShowAt && (Z.balls.length === 0 || t - failAt > S.failBadgeAfter * 1000)) { failShowAt = t + S.failDelay * 1000; setTimeout(() => sfx.play('fail', S), S.failDelay * 1000); onFinish(); }
-  dying = dying.filter(d => t - d.t0 < S.popDur * 1000);
   // 滚动声：链在动且未结束
   if (sfx.ctx) sfx.roll(S, Z.state === 'play' && Z.balls.length ? 1 : Z.state === 'fail' && Z.balls.length ? 1.4 : 0);
 }
 
 // ---------- 渲染 ----------
 function ballList(t) {
-  const D = S.ballSize, out = [];
-  for (const b of Z.balls) { const p = Z.pos(b); if (p.y < view.y0 - D) continue; let sc = 1; const left = T.len - b.s; if (left < D * 0.9) sc = clamp01(left / (D * 0.9)) * 0.6 + 0.4 * (left > 0); if (Z.state === 'fail' && left < D) sc = clamp01(left / D); out.push({ id: b.id, c: b.c, x: p.x, y: p.y, scale: sc }); }
-  for (const s of Z.shots) out.push({ id: s.id, c: s.c, x: s.x, y: s.y, scale: 1 });
-  for (const d of dying) { const u = (t - d.t0) / (S.popDur * 1000); out.push({ id: d.id, c: d.c, x: d.x, y: d.y, scale: Math.max(0.01, 1 - u * u) }); }
+  const D = S.ballSize, out = Z.renderList().filter(b => b.y > view.y0 - D);
   if (Z.state === 'play' || (Z.state === 'fail' && !failShowAt)) { const m = Z.muzzle(), u = clamp01((t - mouthT) / 90); out.push({ id: 1e7 + Z.shotsFired, c: Z.cur, x: m.x, y: m.y, z: S.ballSize / 2 + 6 * S.frogScale, scale: mouthT ? 0.3 + 0.7 * easeOut(u) : 1, mouth: true }); }
   return out;
 }
