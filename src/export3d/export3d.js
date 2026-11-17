@@ -2,6 +2,7 @@
 // 由 AE 记录的同一份时间轴按 3D 帧率逐帧烘焙关键帧。2D 叠加层（特效 / FAIL / 文字 / 手指）不进 GLB（见 README_3D.md）。
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import { ueOptimizeExport } from './ue-optimize.js';
 import { makeZip } from '../ae/zip.js';
 import { makeFrog } from '../scene3d.js';
 import { colorHex, ballTextures, BALL_STYLES } from '../paint.js';
@@ -48,12 +49,14 @@ export async function export3D({ S, ae, rec, env }) {
   const cam = new THREE.OrthographicCamera(-view.w / 2, view.w / 2, view.h / 2, -view.h / 2, 1, 4000); cam.name = 'camera_ortho'; cam.position.set(view.x0 + view.w / 2, -(view.y0 + view.h / 2), 2000); root.add(cam);
   const scn = new THREE.Scene(); scn.name = 'zuma_scene'; scn.add(root);
   const clip = new THREE.AnimationClip('zuma', D, tracks); stats.tracks = tracks.length;
-  const glb = await new GLTFExporter().parseAsync(scn, { binary: true, animations: [clip], onlyVisible: false, trs: true });
+  const glb0 = await new GLTFExporter().parseAsync(scn, { binary: true, animations: [clip], onlyVisible: false, trs: true });
+  const UEO = ueOptimizeExport(glb0, S, { fps, opacity: null }); // 引擎精简导出（控制台可关）
+  const glb = UEO.glb;
   const tl = ae.timeline, byA = new Map(tl.assets.map(a => [a.id, a])), sfxC = tl.comps.find(c => c.id === 'sfx'), audio = [];
   if (sfxC) for (const l of sfxC.layers) { const a = byA.get(l.src.asset); if (a) audio.push({ file: a.file, t: l.start || 0, name: l.name }); }
   const scene3d = { tool: 'zuma-tool', version: '1.0.2', format: 'export3d/1', fps, frames: NF + 1, frameStart: 0, frameEnd: NF, duration: D, width: Math.round(view.w), height: Math.round(view.h),
     units: { px: PX, note: 'bead_root 缩放 0.01（1 设计像素 = 1cm），绕 X 轴 -90°（页面 z 向上 → Y 向上）' }, camera: { name: cam.name, type: 'orthographic', orthoScale: r5(Math.max(view.w, view.h) * PX), widthM: r5(view.w * PX), heightM: r5(view.h * PX) },
-    lights: { sun: { intensity: S.lightSun, elev: S.lightElev, azim: S.lightAzim }, ambient: { intensity: S.lightAmb } }, visibility: 'ball_* 不在场时 scale=0（STEP）', nodes, audio, stats };
+    lights: { sun: { intensity: S.lightSun, elev: S.lightElev, azim: S.lightAzim }, ambient: { intensity: S.lightAmb } }, visibility: 'ball_* 不在场时 scale=0（STEP）', nodes, audio, stats, optimize: UEO.stats };
   const enc = new TextEncoder(), fm = new Map(ae.fileList.map(f => [f.name, f.data]));
   const out = [{ name: 'scene.glb', data: new Uint8Array(glb) }, { name: 'scene3d.json', data: enc.encode(JSON.stringify(scene3d)) }, { name: 'timeline.json', data: fm.get('timeline.json') }, { name: 'blender_import.py', data: enc.encode(PY_TEXT) }, { name: 'README_3D.md', data: enc.encode(README_TEXT) }, ...ae.fileList.filter(f => f.name.startsWith('audio/'))];
   const d = new Date(), p2 = x => String(x).padStart(2, '0'), stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
