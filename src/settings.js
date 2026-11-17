@@ -1,7 +1,7 @@
 // 设置定义：所有可调参数（中文标签）。版本号 + 迁移（通用分组 / 键名与 ref/TOOLKIT_STANDARD.md 一致）
 import { DEFAULT_HAND } from './default_hand.js';
 import { h5DeviceSelectOptions } from './h5/index.js';
-export const APP_VERSION = '1.0.2';
+export const APP_VERSION = '1.0.3';
 export const SETTINGS_VERSION = 3;
 export const STORE_KEY = 'zumaTool.settings';
 export const APP_ID = 'zuma-tool';

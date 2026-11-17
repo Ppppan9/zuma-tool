@@ -346,3 +346,6 @@ window.__game = {
 Promise.all([loadImg(RUINS_JPG), loadImg(GREY_JPG), loadImg(S.bgImage)]).then(([a, b, c]) => {
   imgs.ruins = a; imgs.grey = b; imgs.custom = c; buildPanel(); loadHand(); newGame(); window.__ready = true; requestAnimationFrame(loop);
 });
+
+import { installPanelUI } from './panel-ui.js';
+installPanelUI({ openKey: 'zumaTool.panelOpen.v1' });
