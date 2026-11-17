@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""祖玛核玩工具 3D 动画导入脚本（Blender 3.6 / 4.x）：与 scene.glb 同目录运行。"""
+"""彩球轨道核玩工具 3D 动画导入脚本（Blender 3.6 / 4.x）：与 scene.glb 同目录运行。"""
 import bpy, json, os
 HERE = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() and __file__ else os.getcwd()
 meta = json.load(open(os.path.join(HERE, "scene3d.json"), encoding="utf-8"))

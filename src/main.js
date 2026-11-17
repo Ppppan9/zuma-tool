@@ -1,7 +1,7 @@
-// 祖玛核玩工具 v1.0.0 —— 主程序：游戏循环 / 渲染合成 / 输入 / 自动通关 / 录制 / AE·3D·H5 导出 / 设置面板
+// 彩球轨道核玩工具 v1.0.0 —— 主程序：游戏循环 / 渲染合成 / 输入 / 自动通关 / 录制 / AE·3D·H5 导出 / 设置面板
 import { GROUPS, DEFS, loadSettings, saveSettings, migrate, exportJSON, APP_ID, APP_VERSION } from './settings.js';
 import { buildTrack, DW, DH } from './track.js';
-import { Zuma } from './logic.js';
+import { BeadChain } from './logic.js';
 import { paintBackground, failBadge, colorHex, ballSprite2D, mk } from './paint.js';
 import { spawnMatchFx, drawFx, fxItems } from './fx.js';
 import { Sfx } from './audio.js';
@@ -50,7 +50,7 @@ function rebuild() {
 function newGame() {
   autoToken++; autoRunning = false; updAutoBtn();
   themeNow = S.theme; rebuild();
-  Z = new Zuma(S, T); fx = []; dying = []; failAt = failShowAt = winAt = 0; t0Game = lastT = now(); mouthT = 0;
+  Z = new BeadChain(S, T); fx = []; dying = []; failAt = failShowAt = winAt = 0; t0Game = lastT = now(); mouthT = 0;
   if (R3) R3.setBg(bgCanvas[themeNow]);
   window.__finished = false; window.__failed = false; status(`v${APP_VERSION} · 球链 ${Z.balls.length} 颗 · ${S.colorCount} 色`);
 }

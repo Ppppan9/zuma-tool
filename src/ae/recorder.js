@@ -38,7 +38,7 @@ export function createAERecorder(api) {
     const fps = +S.aeFps || 30, bake = S.aeSampling === 'bake', CW = 720, CH = 1280, zh = S.aeNames !== 'en', V = E.view;
     const D = Math.max(1 / fps, Math.ceil((rec.lastT + 1 / fps) * fps - 1e-6) / fps);
     const assets = [], assetFiles = [], pending = [], used = new Map();
-    const folders = [{ id: 'root', name: '祖玛_AE工程' }, { id: 'img', name: '素材', parent: 'root' }, { id: 'balls', name: '球', parent: 'img' }, { id: 'frog', name: '石青蛙', parent: 'img' }, { id: 'fx', name: '消除特效', parent: 'img' }, { id: 'ui', name: '界面', parent: 'img' }, { id: 'aud', name: '音频', parent: 'root' }, { id: 'pre', name: '预合成', parent: 'root' }];
+    const folders = [{ id: 'root', name: '彩球轨道_AE工程' }, { id: 'img', name: '素材', parent: 'root' }, { id: 'balls', name: '球', parent: 'img' }, { id: 'frog', name: '石青蛙', parent: 'img' }, { id: 'fx', name: '消除特效', parent: 'img' }, { id: 'ui', name: '界面', parent: 'img' }, { id: 'aud', name: '音频', parent: 'root' }, { id: 'pre', name: '预合成', parent: 'root' }];
     const toPng = c => new Promise(res => c.toBlob(b => b.arrayBuffer().then(a => res(new Uint8Array(a))), 'image/png'));
     function assetFor(key) {
       if (used.has(key)) return used.get(key); const a = AS[key]; if (!a) return null;
@@ -85,8 +85,8 @@ export function createAERecorder(api) {
     } catch (e) { console.warn('audio export', e); }
     for (const e of rec.sfx) markers.push([r4(e.t), zh ? ZH(e.name) : e.name]);
     const d = new Date(), p2 = x => String(x).padStart(2, '0'), stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
-    comps.push({ id: 'main', name: zh ? '主合成_祖玛' : 'Main_Zuma', w: Math.round(V.w), h: Math.round(V.h), duration: D, fps, folder: 'root', bg: [0, 0, 0], layers, markers });
-    if (!zh) for (const f of folders) f.name = { 祖玛_AE工程: 'Zuma_AE', 素材: 'Assets', 球: 'Balls', 石青蛙: 'Frog', 消除特效: 'FX', 界面: 'UI', 音频: 'Audio', 预合成: 'Precomps' }[f.name] || f.name;
+    comps.push({ id: 'main', name: zh ? '主合成_彩球轨道' : 'Main_BeadTrack', w: Math.round(V.w), h: Math.round(V.h), duration: D, fps, folder: 'root', bg: [0, 0, 0], layers, markers });
+    if (!zh) for (const f of folders) f.name = { 彩球轨道_AE工程: 'BeadTrack_AE', 素材: 'Assets', 球: 'Balls', 石青蛙: 'Frog', 消除特效: 'FX', 界面: 'UI', 音频: 'Audio', 预合成: 'Precomps' }[f.name] || f.name;
     const keyCount = p => p && p.t ? p.t.length : 0, stats = { comps: comps.length, layers: 0, keys: 0, balls: new Set(segs.filter(g => /^(ball|mouth)_/.test(g.tr.id)).map(g => g.tr.id.split('_')[1])).size, fx: segs.filter(g => g.tr.id.startsWith('fx_')).length, sfx: rec.sfx.length, blur: rec.blur.length > 0 };
     for (const c of comps) { stats.layers += c.layers.length; for (const l of c.layers) { if (l.tr) for (const k of ['position', 'scale', 'rotation', 'opacity']) { const kc = keyCount(l.tr[k]); if (kc > 1) stats.keys += kc; } if (l.fx && keyCount(l.fx.blur) > 1) stats.keys += keyCount(l.fx.blur); } }
     const timeline = { meta: { tool: 'zuma-tool', version: api.version || '1.0.2', format: 1, created: d.toISOString(), fps, width: Math.round(V.w), height: Math.round(V.h), duration: D, design: [CW, CH], view: V, sampling: bake ? 'bake' : 'reduce', names: zh ? 'zh' : 'en', saveAep: S.aeSaveAep !== false, aepName: `zuma-tool_${stamp}.aep`, newProject: true, stats, note: '图层从下到上排列；时间单位秒；位置/锚点单位像素（合成坐标 = 设计坐标减去可视区域左上角）；缩放为百分比' },

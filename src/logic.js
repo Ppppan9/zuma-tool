@@ -1,4 +1,4 @@
-// 祖玛核心玩法（纯逻辑，无 DOM；node 测试直接 import）
+// 彩球轨道核心玩法（纯逻辑，无 DOM；node 测试直接 import）
 // 链：balls[0] = 队尾（弧长最小，靠近入口），balls[n-1] = 队首（最靠近黑洞）。弧长单位 px（设计坐标 720×1280）。
 export function mulberry(seed) { let a = seed >>> 0 || 1; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 export const COLOR_KEYS = ['red', 'green', 'yellow', 'blue', 'purple', 'white'];
@@ -14,7 +14,7 @@ export function makeChainColors(n, nColors, rnd, sameProb = 0.45, maxRun = 2) {
   return out;
 }
 
-export class Zuma {
+export class BeadChain {
   constructor(S, track, opts = {}) {
     this.S = S; this.T = track; this.D = S.ballSize; this.rnd = mulberry(opts.seed ?? S.seed);
     this.nColors = Math.max(1, Math.min(S.colorCount, 6));

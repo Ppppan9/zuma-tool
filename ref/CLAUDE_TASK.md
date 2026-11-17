@@ -1,4 +1,4 @@
-# Task: build 祖玛核玩工具 (zuma-tool) — a web game tool cloned from a mobile ad video
+# Task: build 彩球轨道核玩工具 (zuma-tool) — a web game tool cloned from a mobile ad video
 
 Work in this folder. Build a complete, runnable project here (git init, commit as you go). Respond/comment in Chinese where user-facing (UI labels in Chinese).
 

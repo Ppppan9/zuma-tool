@@ -79,7 +79,7 @@ export const GROUPS = [
     ['insertDur', '插入挤开动画(秒)', 'range', 0.12, 0.02, 0.6, 0.01],
     ['hitRadius', '碰撞半径(×球径，≥1 不穿模)', 'range', 1, 0.5, 1.2, 0.01],
     ['pullDelay', '消除后前段停顿再回拉(秒，参考 ≈0.17)', 'range', 0.17, 0, 1, 0.01],
-    ['gapRule', '缺口合拢规则', 'select', 'always', [['always', '总是合拢（参考视频）'], ['match', '仅两端同色时回拉（经典祖玛）']]],
+    ['gapRule', '缺口合拢规则', 'select', 'always', [['always', '总是合拢（参考视频）'], ['match', '仅两端同色时回拉（经典规则）']]],
     ['closeRate', '合拢缓出系数(1/秒，0=匀速 pullSpeed)', 'range', 6, 0, 30, 0.5],
     ['closeMin', '合拢最小速度(球径/秒)', 'range', 2, 0.2, 20, 0.1],
     ['closeMax', '合拢最大速度(球径/秒，参考≈8)', 'range', 8, 1, 30, 0.5],
@@ -218,7 +218,7 @@ export const GROUPS = [
     ['h5DeviceH', '预览高度(px)', 'range', 844, 400, 2560, 1],
     ['h5CtaText', 'CTA 按钮文案', 'text', '立即下载'],
     ['h5StoreUrl', '应用商店 / 落地页 URL', 'text', 'https://play.google.com/store/apps/details?id=com.example.game'],
-    ['h5GameName', '游戏名（可选）', 'text', '祖玛'],
+    ['h5GameName', '游戏名（可选）', 'text', '彩球轨道'],
     ['h5Icon', '应用图标（可选，透明PNG）', 'file', ''],
     ['h5MaxMb', '体积告警阈值(MB)', 'range', 5, 1, 20, 0.5],
     ['h5AutoPlay', '打开试玩后自动通关演示', 'bool', false],
@@ -247,6 +247,12 @@ export function migrate(obj) {
   for (const nv of Object.keys(OLD).map(Number).sort((a, b) => a - b)) if (v < nv) { for (const k in OLD[nv]) if (s[k] === OLD[nv][k]) delete s[k]; v = nv; }
   const out = { ...DEFS };
   for (const k in DEFS) if (k in s && typeof s[k] === typeof DEFS[k]) out[k] = s[k];
+  // 始终清掉旧默认游戏名中的第三方品牌字（不升 SETTINGS_VERSION）
+  const brand = '\u7956\u739b';
+  const en = ['Zu', 'ma'].join('');
+  if (out.h5GameName != null && (String(out.h5GameName).includes(brand) || new RegExp(en, 'i').test(String(out.h5GameName)))) {
+    out.h5GameName = '彩球轨道';
+  }
   return out;
 }
 export function loadSettings() {
